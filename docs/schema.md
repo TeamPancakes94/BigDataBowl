@@ -6,7 +6,8 @@ Each record represents a **single player’s performance** on a **specific play*
 The purpose of this schema is to ensure that all team members work with a **consistent and defined data format**. 
 
 Use the following column definitions.
-# Column Definitions
+
+Column Definitions
 
 - **gameId** — game identifier  
 - **playId** — unique play number  
