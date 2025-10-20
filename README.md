@@ -1,8 +1,7 @@
 # BigDataBowl
 
 Sky Vision evaluates every targeted rep between a Receiver and Defensive Back by quantifying five technical pillars that explain who truly won the play relative to the ball.
-Each category isolates a measurable skill that affects the ball’s outcome.
-Improv Index runs parallel to capture creative adaptation.
+Each category isolates a measurable skill that affects the ball’s outcome, while our additional Improv Index runs parallel to capture creative adaptation beyond the scripted route.
 
 We will use the 5 following pillars:    
 - **A** = Anticipation/Reaction
