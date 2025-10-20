@@ -7,8 +7,6 @@ The purpose of this schema is to ensure that all team members work with a **cons
 
 Use the following column definitions.
 
-Column Definitions
-
 - **gameId** — game identifier  
 - **playId** — unique play number  
 - **playerId** — unique player ID (WR or DB)  
