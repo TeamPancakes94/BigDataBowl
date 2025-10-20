@@ -3,7 +3,7 @@
 This document outlines the structure of the main dataset used in the AFTERSNAP IQ™ / DBS analytics pipeline.  
 
 Each record represents a **single player’s performance** on a **specific play** and **pillar** (ex. a wide receiver’s “Separation” score on Play 24).
-The purpose of this schema is to ensure that all team members are work with a **consistent and defined data format** throughout the project.
+The purpose of this schema is to ensure that all team members work with a **consistent and defined data format**.
 ## Column Definitions
 
 - **gameId** — game identifier  
