@@ -11,8 +11,8 @@ We will use the following five pillars:
 - **E** = (Eye) Ball Tracking — ability to locate, track, and adjust to the ball
 - **I** = Innovation / Creativity — off-script adaptability under pressure
 
-Sky Vision uses **NFL Next Gen Stats tracking data** combined with **annotated video** to compute the pillar metrics.
-Each pillar is scored on a **1–10 scale**, weighted by positional importance, and aggregated into an **AFTERSNAP IQ™** metric.
+Sky Vision will **NFL Next Gen Stats tracking data** combined with **annotated video** to compute the pillar metrics.
+Each pillar will be scored on a **1–10 scale**, weighted by positional importance, and aggregated into an **AFTERSNAP IQ™** metric.
 
-The result is a per-play score scaled to a **0–100 overall grade**, enabling comparison across positions, archetypes, and coverage situations.
-Scores are validated against other analytical sources and visualized through the Sky Vision dashboard to support scouting and player-development insights.
+The result will be a per-play score scaled to a **0–100 overall grade**, enabling comparison across positions, archetypes, and coverage situations.
+Scores will be validated against other analytical sources and visualized through the Sky Vision dashboard to support scouting and player-development insights.
