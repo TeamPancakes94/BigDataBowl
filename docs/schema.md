@@ -1,6 +1,6 @@
 ## AFTERSNAP IQ™ / DBS Data Schema  
 
-This document outlines the structure of the main dataset used in the AFTERSNAP IQ™ / DBS analytics pipeline.  
+This document outlines the structure we will use in the AFTERSNAP IQ™ / DBS analytics pipeline.  
 
 Each record represents a **single player’s performance** on a **specific play** and **pillar** (ex. a wide receiver’s “Separation” score on Play 24).
 The purpose of this schema is to ensure that all team members work with a **consistent and defined data format**.
