@@ -18,7 +18,7 @@ Use the following column definitions.
 - **speed(t)** — player speed trace  
 - **dir(t)** — movement direction (degrees)  
 - **nearestDbDist_at_catch** — WR–DB distance at catch (yards)  
-- **raw_value** — measured pillar metric (e.g., Δt, yards, etc.) 
+- **raw_value** — measured pillar metric (Δt, yards, etc.) 
 - **score_1_10** — normalized pillar score (1–10 scale)  
 - **success** — binary indicator (1 = successful pillar, 0 = failed pillar) 
 - **notes** — optional observations or comments  
