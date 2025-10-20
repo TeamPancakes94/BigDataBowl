@@ -5,11 +5,11 @@ Sky Vision evaluates every targeted rep between a wide receiver (WR) and a defen
 Each pillar isolates a measurable skill that influences the ball’s outcome, while the additional **Improv Index** runs parallel to capture creative adaptation beyond the scripted route.
 
 We will use the 5 following categories:     
-- **A = Anticipation / Reaction** — quickness of response after the snap  
-- **S = Separation / Space** — distance created or denied at the catch point  
-- **E = Execution / Technique** — precision, body control, and mechanics  
-- **E = (Eye) Ball Tracking** — ability to locate, track, and adjust to the ball  
-- **I = Innovation / Creativity** — off-script adaptability under pressure
+- **A** = Anticipation / Reaction — quickness of response after the snap  
+- **S** = Separation / Space — distance created or denied at the catch point  
+- **E** = Execution / Technique — precision, body control, and mechanics  
+- **E** = (Eye) Ball Tracking — ability to locate, track, and adjust to the ball  
+- **I** = Innovation / Creativity — off-script adaptability under pressure
 
 Sky Vision uses **NFL Next Gen Stats tracking data** combined with annotated video to compute the pillar metrics. Each pillar is scored on a **1–10 scale**, weighted by positional importance, and aggregated into an **AFTERSNAP IQ™** metric. 
 
