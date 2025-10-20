@@ -1,5 +1,5 @@
 # AFTERSNAP IQ™ / DBS Data Schema  
-*Team Pancakes — Big Data Bowl 2025*
+*Big Data Bowl 2025*
 
 This document outlines the structure of the main dataset used in the AFTERSNAP IQ™ / DBS analytics pipeline.  
 
