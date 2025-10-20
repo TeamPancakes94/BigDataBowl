@@ -1,6 +1,7 @@
-BigDataBowl - Sky Vision
+# BigDataBowl - Sky Vision
 
 Sky Vision evaluates every targeted rep between a wide receiver (WR) and a defensive back (DB) by quantifying five technical pillars that reveal **who truly won the play relative to the ball**.  
+
 Each pillar isolates a measurable skill that influences the ball’s outcome, while the additional **Improv Index** runs parallel to capture creative adaptation beyond the scripted route.
 
 We will use the 5 following categories:     
