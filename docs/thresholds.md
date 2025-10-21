@@ -5,3 +5,5 @@ Pillar Thresholds:
 - Execution - yds, ≤1-1.5 (elite), >2 (red flag/ low)
 - Separation - yds, ≥1-2 (elite), <0.5 (red flag/ low)
 - Innovation - Δyds, ≥0.3–1 (elite), ≤0.1 (red flag/ low)
+
+These thresholds are based on Sky Vision's intern playbook. 
