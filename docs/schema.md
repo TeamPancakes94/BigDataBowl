@@ -7,16 +7,16 @@ The purpose of this schema is to ensure that all team members work with a consis
 
 Use the following column definitions.
 
-- **gameId** — game identifier  
-- **playId** — unique play number  
-- **playerId** — unique player ID 
-- **side** — `"WR"` (wide receiver) or `"DB"` (defensive back)  
+- **game_id** — game identifier  
+- **play_id** — unique play number  
+- **nfl_id** — unique player ID 
+- **player_side** — team player is on (Offense or Defense): `"WR"` (wide receiver) or `"DB"` (defensive back)  
 - **pillar** — skill category (anticipation, execution, separation, innovation, etc.)
 - **t_snap** — time of snap (seconds)  
 - **t_throw** — time of throw or catch (seconds)  
 - **x(t), y(t)** — player position coordinates over time  
-- **speed(t)** — player speed trace  
-- **dir(t)** — movement direction (degrees)  
+- **Speed** — speed in yards/second (numeric)
+- **dir** — angle of player motion (deg)
 - **nearestDbDist_at_catch** — WR–DB distance at catch (yards)  
 - **raw_value** — measured pillar metric (Δt, yards, etc.) 
 - **score_1_10** — normalized pillar score (1–10 scale)  
