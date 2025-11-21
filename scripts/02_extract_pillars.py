@@ -1,8 +1,6 @@
 # 02_extract_pillars.py
 # compute simplified Sky Vision pillar metrics from tracking data
 
-# placement
-
 import pandas as pd
 import numpy as np
 from pathlib import Path

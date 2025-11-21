@@ -1,8 +1,6 @@
 # scripts/05_compare.py
 # streamlit app that adds in comparison mode
 
-# placement
-
 from pathlib import Path
 import numpy as np
 import pandas as pd
