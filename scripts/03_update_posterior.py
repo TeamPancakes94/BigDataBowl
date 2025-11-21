@@ -6,19 +6,45 @@ import numpy as np
 from scipy.stats import beta
 from pathlib import Path
 
-IN_PATH = Path("../outputs/merged_pillars.csv")
-OUT_DIR = Path("../outputs/posterior")
+ROOT = Path(__file__).resolve().parents[1]
+OUT  = ROOT / "outputs"
+OUT_DIR = OUT / "posterior"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Success cutoffs (v1)
-WR_WIN = {"anticipation": 120.0, "execution": 0.50, "separation": 1.50, "innovation": 10.0}
-DB_WIN = {"reaction": 140.0, "coverage": 1.25}
+PILLARS_CSV = OUT / "merged_pillars.csv"
+CORE_CSV    = OUT / "merged_core.csv"
 
-# Weights (only pillars we actually produce now)
-WR_W = {"anticipation": 0.40, "execution": 0.25, "separation": 0.20, "innovation": 0.15}
-DB_W = {"coverage": 0.50, "reaction": 0.50}
+feat_df = pd.read_csv(PILLARS_CSV, low_memory=False)
+
+assert PILLARS_CSV.exists(), f"Missing {PILLARS_CSV}"
+assert CORE_CSV.exists(),    f"Missing {CORE_CSV}"
+
+pillars = pd.read_csv(PILLARS_CSV, low_memory=False)
+core    = pd.read_csv(CORE_CSV,    low_memory=False)
+
+WR_WIN = {
+    "anticipation": 120.0, 
+    "execution":    0.50,  
+    "separation":   1.50,  
+    "innovation":   10.0,  
+    # no 'eyes' here because eyes is a 1–10 score in script 02
+}
+DB_WIN = {
+    "reaction": 140.0,      
+    "coverage": 1.25,       
+    # If you later compute DB 'eyes' (1–10), add a separate threshold for DB
+}
+
+# eyes threshold on a 1–10 scale 
+EYES_THRESH_10 = 8.0
+
+# cverall weights
+WR_W = {"anticipation":0.30, "execution":0.20, "separation":0.20, "innovation":0.15, "eyes":0.15}
+DB_W = {"coverage":0.50, "reaction":0.50}  
+# add "eyes":0.10 later if you compute DB eyes
 
 VALID_PILLARS = set(WR_W) | set(DB_W)
+
 
 def pillar_success(side: str, pillar: str, v: float) -> int:
     if pd.isna(v):
@@ -28,9 +54,12 @@ def pillar_success(side: str, pillar: str, v: float) -> int:
         if pillar == "execution":    return int(v <= WR_WIN["execution"])
         if pillar == "separation":   return int(v >= WR_WIN["separation"])
         if pillar == "innovation":   return int(v >= WR_WIN["innovation"])
-    else:  # DB
+        if pillar == "eyes":         return int(v >= EYES_THRESH_10)   # <-- Eyes is 1–10
+    else:
         if pillar == "reaction":     return int(v <= DB_WIN["reaction"])
         if pillar == "coverage":     return int(v <= DB_WIN["coverage"])
+        # If you later compute DB eyes as 1–10, you could add:
+        # if pillar == "eyes":       return int(v >= EYES_THRESH_10)
     return 0
 
 def beta_update(s: int, f: int, a0: float = 5.0, b0: float = 5.0):
@@ -50,7 +79,7 @@ def overall(side: str, means: dict) -> float:
     return round(100.0 * sum((w / Z) * means[k] for k, w in avail.items()), 1)
 
 def main():
-    df = pd.read_csv(IN_PATH)
+    df = feat_df.copy()
 
     # Handle either snake_case (preferred) or legacy camelCase from older scripts
     rename = {}
@@ -86,19 +115,39 @@ def main():
             "ci_low": lo,
             "ci_high": hi,
         })
-    pillars = pd.DataFrame(rows)
-    (OUT_DIR / "posterior_pillars.csv").write_text(pillars.to_csv(index=False))
+    pillars_post = pd.DataFrame(rows)
+    pillars_post.to_csv(OUT_DIR / "posterior_pillars.csv", index=False)
+
 
     # overall per player × side
     outs = []
-    for (pid, side), sub in pillars.groupby(["player_id", "side"]):
-        means = {row.pillar: row.mean for _, row in sub.iterrows()}
+    for (pid, side), sub in pillars_post.groupby(["player_id", "side"]):
+        means = {row["pillar"]: row["mean"] for _, row in sub.iterrows()}
         W = WR_W if side == "WR" else DB_W
         pill_vec = {f"pillar_{k}": means.get(k, np.nan) for k in W}
-        outs.append({"player_id": pid, "side": side, **pill_vec, "overall_0_100": overall(side, means)})
+
+        # --- compute PER-10 for WRs only ---
+        per10 = np.nan
+        if side == "WR":
+            A = means.get("anticipation", np.nan)
+            S = means.get("separation", np.nan)
+            E = means.get("execution", np.nan)
+            Eyes = means.get("eyes", np.nan)
+            Innovation = means.get("innovation", np.nan)
+            per10 = round(np.nanmean([A, S, E, Eyes, Innovation]) * 10, 1)
+        # --- end PER-10 ---
+
+        outs.append({
+            "player_id": pid,
+            "side": side,
+            **pill_vec,
+            "overall_0_100": overall(side, means),
+            "per10": per10
+        })
+
 
     overall_df = pd.DataFrame(outs)
-    (OUT_DIR / "posterior_overall.csv").write_text(overall_df.to_csv(index=False))
+    overall_df.to_csv(OUT_DIR / "posterior_overall.csv", index=False)
 
     print("Wrote:", (OUT_DIR / "posterior_pillars.csv").resolve())
     print("Wrote:", (OUT_DIR / "posterior_overall.csv").resolve())

@@ -5,27 +5,22 @@ import pandas as pd
 from pathlib import Path
 from glob import glob
 
-TRAIN = Path("../train")
-OUT = Path("../outputs")
+# TRAIN = Path("../train")
+# OUT = Path("../outputs")
+# OUT.mkdir(parents=True, exist_ok=True)
+
+HERE  = Path(__file__).resolve().parent
+TRAIN = (HERE / "../train").resolve()
+OUT   = (HERE / "../outputs").resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 
 def load_concat(pattern, limit=None):
-    paths = sorted(glob(str(TRAIN / pattern)))
+    paths = sorted(TRAIN.glob(pattern))
     if not paths:
-        raise FileNotFoundError(f"No files match train/{pattern}")
+        raise FileNotFoundError(f"No files match {TRAIN.name}/{pattern}")
     if limit:
         paths = paths[:limit]
-    dfs = []
-    for p in paths:
-        df = pd.read_csv(p, low_memory=False)
-        # normalize common keys proactively
-        for col in ("game_id", "play_id", "nfl_id"):
-            if col in df.columns:
-                if col in ("game_id", "play_id"):
-                    df[col] = pd.to_numeric(df[col], errors="ignore")
-                else:  # nfl_id
-                    df[col] = pd.to_numeric(df[col], errors="coerce")
-        dfs.append(df)
+    dfs = [pd.read_csv(p, low_memory=False) for p in paths]
     return pd.concat(dfs, ignore_index=True)
 
 def main():

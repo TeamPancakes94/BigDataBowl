@@ -6,20 +6,64 @@ import numpy as np
 from pathlib import Path
 from glob import glob
 
+# need for ball-in-air window
+from _utils_data import load_weeks
+from _utils_ball import find_throw_and_arrival, slice_ball_window, eyes_score
+
 FPS = 10.0
 MS_PER_FRAME = 1000.0 / FPS  # 100 ms/frame
 
-TRAIN = Path("../train")
-OUT = Path("../outputs")
+ROOT = Path(__file__).resolve().parents[1]
+TRAIN = ROOT / "train"
+OUT   = ROOT / "outputs"
 OUT.mkdir(parents=True, exist_ok=True)
 
-def load_concat(pattern, limit=None):
+# --- column normalization + robust loader ---
+COLMAP = {
+    "gameId": "game_id",
+    "playId": "play_id",
+    "nflId": "nfl_id",
+    "frameId": "frame_id",
+    "playerRole": "player_role",
+}
+
+REQUIRED = {
+    "input":  ["game_id", "play_id", "nfl_id", "frame_id", "x", "y", "s", "o", "dir", "player_role"],
+    "output": ["game_id", "play_id", "nfl_id", "frame_id", "x", "y", "player_role"],
+}
+
+def _standardize_cols(df: pd.DataFrame) -> pd.DataFrame:
+    # lower-case everything first
+    df = df.rename(columns={c: c.lower() for c in df.columns})
+    # then map kaggle camelCase -> snake_case used by the scripts
+    df = df.rename(columns={k.lower(): v for k, v in COLMAP.items()})
+    return df
+
+# update load_concat
+def load_concat(pattern, limit=None, kind="input"):
     paths = sorted(glob(str(TRAIN / pattern)))
     if not paths:
         raise FileNotFoundError(f"No files match train/{pattern}")
     if limit:
         paths = paths[:limit]
-    return pd.concat([pd.read_csv(p, low_memory=False) for p in paths], ignore_index=True)
+
+    dfs = [pd.read_csv(p, low_memory=False) for p in paths]
+    df = pd.concat(dfs, ignore_index=True)
+
+    # normalize column names (camelCase -> snake_case, lowercasing)
+    df = _standardize_cols(df)
+
+    base_cols = {"frame_id", "game_id", "play_id", "nfl_id", "x", "y"}
+    missing = base_cols - set(df.columns)
+    if missing:
+        raise KeyError(f"Missing columns in {kind} files: {missing}. Have: {sorted(df.columns)}")
+
+    # Only input files are expected to have player_role
+    if kind == "input" and "player_role" not in df.columns:
+        raise KeyError("Input files must contain 'player_role'")
+
+    return df
+# --- end replacement ---
 
 def first_move_frame(g):
     m = g[g["s"] > 0.5]
@@ -39,8 +83,29 @@ def circ_std_deg(series):
     return np.rad2deg(std_rad)
 
 def main():
-    inp  = load_concat("input_2023_w*.csv",  limit=2)
-    outp = load_concat("output_2023_w*.csv", limit=2)
+    inp  = load_concat("input_2023_w*.csv",  limit=2, kind="input")
+    outp = load_concat("output_2023_w*.csv", limit=2, kind="output")
+
+    # Replace your old throw proxy / last-N logic for ball-in-air
+    anchors = find_throw_and_arrival(inp, outp)
+
+    # Slice to the true ball-in-air window for tracking-derived pillars:
+    inp_window = slice_ball_window(inp, anchors)
+    out_window = slice_ball_window(outp, anchors)
+
+    # Compute EYES (1–10) per player in window
+    # Choose which angle column you trust ('dir' or 'o')
+    angle_col = "dir" if "dir" in inp_window.columns else "o"
+    eyes = eyes_score(inp_window, angle_col=angle_col)  # columns: game_id, play_id, nfl_id, eyes_1_10
+    # end of ball-in-air window implementation 
+
+    # Attach player_role to output rows (output files usually lack it)
+    roles = (
+        inp[["game_id", "play_id", "nfl_id", "player_role"]]
+            .dropna(subset=["player_role"])
+            .drop_duplicates(subset=["game_id", "play_id", "nfl_id"], keep="last")
+    )
+    outp = outp.merge(roles, on=["game_id", "play_id", "nfl_id"], how="left")
 
     # anchors
     t0 = (inp.groupby(["game_id","play_id"])["frame_id"]
@@ -113,6 +178,10 @@ def main():
                .merge(wr_jitter, on=["game_id","play_id","nfl_id"], how="left")
                .merge(wr_innov,  on=["game_id","play_id","nfl_id"], how="left")
                .merge(wr_sep,    on=["game_id","play_id","nfl_id"], how="left"))
+    
+    # Add Eyes scores to WR feature table
+    wr_feat = wr_feat.merge(eyes.rename(columns={"eyes_1_10": "eyes_score"}), on=["game_id", "play_id", "nfl_id"], how="left")
+
 
     for _, r in wr_feat.iterrows():
         rows += [
@@ -120,6 +189,7 @@ def main():
             {"game_id":r.game_id,"play_id":r.play_id,"player_id":r.nfl_id,"side":"WR","pillar":"execution","raw_value":r.execution_jitter,"units":"unit"},
             {"game_id":r.game_id,"play_id":r.play_id,"player_id":r.nfl_id,"side":"WR","pillar":"separation","raw_value":r.separation_yds,"units":"yd"},
             {"game_id":r.game_id,"play_id":r.play_id,"player_id":r.nfl_id,"side":"WR","pillar":"innovation","raw_value":r.innovation_turn,"units":"deg"},
+            {"game_id": r.game_id, "play_id": r.play_id, "player_id": r.nfl_id, "side": "WR", "pillar": "eyes", "raw_value": r.eyes_score, "units": "score"},
         ]
 
     for _, r in db_move.iterrows():
