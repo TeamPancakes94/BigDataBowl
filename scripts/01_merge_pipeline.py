@@ -1,6 +1,8 @@
 # 01_merge_pipeline.py
 # create roster table from kaggle's train input/output
 
+# placement
+
 import pandas as pd
 from pathlib import Path
 from glob import glob

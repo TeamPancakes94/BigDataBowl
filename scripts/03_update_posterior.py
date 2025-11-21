@@ -1,6 +1,8 @@
 # 03_update_posterior.py
 # Bayesian beta–binomial for player, side, pillar and overall score 0–100
 
+# placement 
+
 import pandas as pd
 import numpy as np
 from scipy.stats import beta
