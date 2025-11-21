@@ -4,12 +4,12 @@ import pandas as pd
 #=========================================================================================
 # Computes Per-10 Score from given 5 pillar scores.
 #=========================================================================================
-def compute_per10(A, S, E, Eyes, Innovation):
+def compute_per10_360(A, S, E, Eyes, Innovation, Improv):
     """
     Compute Ball IQ PER-10 score.
     Inputs must already be values from 1 to 10.
     """
-    vals = np.array([A, S, E, Eyes, Innovation], dtype=float)
+    vals = np.array([A, S, E, Eyes, Innovation, Improv], dtype=float)
     per10 = np.round(vals.mean(), 0)
     return int(per10)
 
@@ -17,7 +17,7 @@ def compute_per10(A, S, E, Eyes, Innovation):
 # Outputs a DF with the Following Columns (basically a summary table) for a play id
 # play_id,	nfl_player_id,	A,	S,	E,	Eyes,	Innovation,	 PER10
 #=========================================================================================
-def compute_all_per10(A_df, S_df, E_df, Eyes_df, Innovation_df):
+def compute_all_per10_360(A_df, S_df, E_df, Eyes_df, Innovation_df, Improv_df):
     """
     Merge all pillar scores and compute PER-10 for every player-play.
     """
@@ -31,16 +31,19 @@ def compute_all_per10(A_df, S_df, E_df, Eyes_df, Innovation_df):
                on=["play_id", "nfl_player_id"], how="outer")
         .merge(Innovation_df.rename(columns={"innovation_score": "Innovation"}), 
                on=["play_id", "nfl_player_id"], how="outer")
+        .merge(Improv_df.rename(columns={"improv_score": "Improv"}),
+               on=["play_id", "nfl_player_id"], how="outer")
     )
 
     # Compute PER-10 for each row
-    df["PER10"] = df.apply(
-        lambda row: compute_per10(
+    df["PER10_360"] = df.apply(
+        lambda row: compute_per10_360(
             row["A"], 
             row["S"], 
             row["E"], 
             row["Eyes"], 
-            row["Innovation"]
+            row["Innovation"],
+            row["Improv"]
         ),
         axis=1
     )
@@ -600,6 +603,128 @@ def compute_all_innovation(df, role_map=None):
                 "play_id": play_id,
                 "nfl_player_id": player_id,
                 "innovation_score": score
+            })
+
+    return pd.DataFrame(results)
+
+
+#=========================================================================================
+# How Improv Was Calculated:
+# Did the player make an unexpected, effective adjustment compared to their typical movement pattern?
+# Disruption Detection - Did the player get forced off their expected path?
+#   We measure how often the player is unexpectedly displaced: sudden deceleration, sudden direction flip
+# Recovery Speed - Once disrupted, how quickly did the player recover?
+#   Measure: TIME between disruption moment and re-stabilization
+# Improvised Outcome Gain - Did the reaction actually improve the play?
+#   Receiver: moved closer to ball | Defender: reduced separation
+#=========================================================================================
+def compute_improv_score(play_df, player_id, role="receiver"):
+    """
+    Computes Improv Index (0–10) for one player in one play.
+
+    Improv = reactive recovery and adaptation AFTER play breaks structure.
+    """
+
+    df = play_df[play_df["nfl_player_id"] == player_id].copy()
+    if df.empty or len(df) < 5:
+        return np.nan
+
+    # 1. Detect disruption (D)
+    # sudden speed changes
+    speed = df["s"].values
+    speed_diff = np.abs(np.diff(speed))
+
+    # sudden direction changes
+    directions = np.degrees(np.arctan2(df["y"].diff(), df["x"].diff())) % 360
+    dir_diff = np.abs((np.diff(directions) + 180) % 360 - 180)
+
+    # measure disruption magnitude
+    disruption_raw = np.mean(speed_diff) + (np.mean(dir_diff) / 2)
+
+    # normalize to 0–10
+    D = np.clip(disruption_raw / 5, 0, 10)  # 5 is typical max in tracking data
+
+    # 2. Recovery Speed (R)
+    # recovery = how fast direction variance decreases after the largest spike
+    if len(dir_diff) < 3:
+        return 5.0
+
+    disruption_frame = np.argmax(dir_diff)  # moment of chaos
+
+    post = dir_diff[disruption_frame:]
+    if len(post) < 2:
+        R = 5
+    else:
+        # how fast jitter declines
+        recover_time = np.argmax(post < 10) if np.any(post < 10) else len(post)
+        R = np.clip(10 - recover_time * 1.5, 0, 10)
+
+    # 3. Outcome Gain (G)
+    G = 0
+
+    if role == "receiver":
+        # improvement in distance to landing point
+        if "landing_x" in df and "landing_y" in df:
+            lx = df["landing_x"].iloc[0]
+            ly = df["landing_y"].iloc[0]
+
+            initial_dist = np.sqrt((df["x"].iloc[0] - lx)**2 +
+                                   (df["y"].iloc[0] - ly)**2)
+            final_dist = np.sqrt((df["x"].iloc[-1] - lx)**2 +
+                                 (df["y"].iloc[-1] - ly)**2)
+            G = np.clip(initial_dist - final_dist, 0, 10)
+
+    else:  # defender
+        if "target_separation" in df:
+            sep0 = df["target_separation"].iloc[0]
+            sep1 = df["target_separation"].iloc[-1]
+            G = np.clip(sep0 - sep1, 0, 10)
+
+    # Combine
+    improv = 0.4 * D + 0.3 * R + 0.3 * G
+    return round(float(improv), 2)
+
+# ------------------------------------------------------
+# Compute Innovation for the entire dataset
+# ------------------------------------------------------
+def compute_all_improv(df, role_map=None):
+    """
+    Computes Improv Index (I) for all players in all plays.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Full tracking dataset (already filtered to ball-in-air frames).
+    role_map : dict, optional
+        Mapping player_id -> role ("receiver" or "defender").
+        If None, defaults all players to "receiver".
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns: play_id, nfl_player_id, improv_score
+    """
+
+    results = []
+
+    # Loop through each play
+    for play_id, play_df in df.groupby("play_id"):
+
+        # Loop through each player in the play
+        for player_id in play_df["nfl_player_id"].unique():
+
+            # Assign role
+            role = "receiver"
+            if role_map is not None and player_id in role_map:
+                role = role_map[player_id]
+
+            # Compute improv score for that player in that play
+            score = compute_improv_score(play_df, player_id, role)
+
+            results.append({
+                "play_id": play_id,
+                "nfl_player_id": player_id,
+                "improv_score": score
             })
 
     return pd.DataFrame(results)
