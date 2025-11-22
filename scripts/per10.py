@@ -10,29 +10,29 @@ def compute_per10_360(A, S, E, Eyes, Innovation, Improv):
     Inputs must already be values from 1 to 10.
     """
     vals = np.array([A, S, E, Eyes, Innovation, Improv], dtype=float)
-    per10 = np.round(vals.mean(), 0)
-    return int(per10)
+    per10_360 = np.round(vals.mean(), 0)
+    return int(per10_360)
 
 #=========================================================================================
 # Outputs a DF with the Following Columns (basically a summary table) for a play id
-# play_id,	nfl_player_id,	A,	S,	E,	Eyes,	Innovation,	 PER10
+# play_id,	nfl_id,	A,	S,	E,	Eyes,	Innovation,	 PER10
 #=========================================================================================
 def compute_all_per10_360(A_df, S_df, E_df, Eyes_df, Innovation_df, Improv_df):
     """
     Merge all pillar scores and compute PER-10 for every player-play.
     """
 
-    # Merge all five pillar dataframes on (play_id, nfl_player_id)
+    # Merge all five pillar dataframes on (play_id, nfl_id)
     df = (
         A_df
-        .merge(S_df, on=["play_id", "nfl_player_id"], how="outer")
-        .merge(E_df, on=["play_id", "nfl_player_id"], how="outer")
+        .merge(S_df, on=["play_id", "nfl_id"], how="outer")
+        .merge(E_df, on=["play_id", "nfl_id"], how="outer")
         .merge(Eyes_df.rename(columns={"eyes_score": "Eyes"}), 
-               on=["play_id", "nfl_player_id"], how="outer")
+               on=["play_id", "nfl_id"], how="outer")
         .merge(Innovation_df.rename(columns={"innovation_score": "Innovation"}), 
-               on=["play_id", "nfl_player_id"], how="outer")
+               on=["play_id", "nfl_id"], how="outer")
         .merge(Improv_df.rename(columns={"improv_score": "Improv"}),
-               on=["play_id", "nfl_player_id"], how="outer")
+               on=["play_id", "nfl_id"], how="outer")
     )
 
     # Compute PER-10 for each row
@@ -364,7 +364,7 @@ def compute_eyes_score(play_df, landing_point, player_id):
     px, py = landing_point
 
     # filter frames for this player
-    df = play_df[play_df['nfl_player_id'] == player_id].copy()
+    df = play_df[play_df['nfl_id'] == player_id].copy()
     if df.empty:
         return np.nan
 
@@ -417,12 +417,12 @@ def compute_all_eyes(df, landing_points):
     df : pd.DataFrame
         Full tracking dataframe (ball-in-air frames only).
     landing_points : dict
-        Mapping play_id -> (landing_x, landing_y) tuple.
+        Mapping play_id -> (ball_land_x, ball_land_y) tuple.
 
     Returns
     -------
     pd.DataFrame
-        Columns: play_id, nfl_player_id, eyes_score
+        Columns: play_id, nfl_id, eyes_score
     """
 
     results = []
@@ -437,7 +437,7 @@ def compute_all_eyes(df, landing_points):
         landing_point = landing_points[play_id]
 
         # Loop through each player in the play
-        for player_id in play_df["nfl_player_id"].unique():
+        for player_id in play_df["nfl_id"].unique():
 
             score = compute_eyes_score(
                 play_df=play_df,
@@ -447,7 +447,7 @@ def compute_all_eyes(df, landing_points):
 
             results.append({
                 "play_id": play_id,
-                "nfl_player_id": player_id,
+                "nfl_id": player_id,
                 "eyes_score": score
             })
 
@@ -505,7 +505,7 @@ def compute_innovation_score(play_df, player_id, role="receiver"):
         Innovation score on 0–10 scale.
     """
 
-    df = play_df[play_df["nfl_player_id"] == player_id].copy()
+    df = play_df[play_df["nfl_id"] == player_id].copy()
     if df.empty or len(df) < 3:
         return np.nan
 
@@ -538,11 +538,11 @@ def compute_innovation_score(play_df, player_id, role="receiver"):
     effectiveness = 0
 
     if role == "receiver":
-        if "landing_x" in df and "landing_y" in df:
-            final_dist = np.sqrt((df["x"].iloc[-1] - df["landing_x"].iloc[-1])**2 +
-                                 (df["y"].iloc[-1] - df["landing_y"].iloc[-1])**2)
-            initial_dist = np.sqrt((df["x"].iloc[0] - df["landing_x"].iloc[0])**2 +
-                                   (df["y"].iloc[0] - df["landing_y"].iloc[0])**2)
+        if "ball_land_x" in df and "ball_land_y" in df:
+            final_dist = np.sqrt((df["x"].iloc[-1] - df["ball_land_x"].iloc[-1])**2 +
+                                 (df["y"].iloc[-1] - df["ball_land_y"].iloc[-1])**2)
+            initial_dist = np.sqrt((df["x"].iloc[0] - df["ball_land_x"].iloc[0])**2 +
+                                   (df["y"].iloc[0] - df["ball_land_y"].iloc[0])**2)
             effectiveness = initial_dist - final_dist  # improvement
     else:  # defender
         if "target_separation" in df:
@@ -580,7 +580,7 @@ def compute_all_innovation(df, role_map=None):
     Returns
     -------
     pd.DataFrame
-        Columns: play_id, nfl_player_id, innovation_score
+        Columns: play_id, nfl_id, innovation_score
     """
 
     results = []
@@ -589,7 +589,7 @@ def compute_all_innovation(df, role_map=None):
     for play_id, play_df in df.groupby("play_id"):
 
         # Loop through each player in that play
-        for player_id in play_df["nfl_player_id"].unique():
+        for player_id in play_df["nfl_id"].unique():
 
             # Get role for player
             role = "receiver"
@@ -601,7 +601,7 @@ def compute_all_innovation(df, role_map=None):
 
             results.append({
                 "play_id": play_id,
-                "nfl_player_id": player_id,
+                "nfl_id": player_id,
                 "innovation_score": score
             })
 
@@ -625,7 +625,7 @@ def compute_improv_score(play_df, player_id, role="receiver"):
     Improv = reactive recovery and adaptation AFTER play breaks structure.
     """
 
-    df = play_df[play_df["nfl_player_id"] == player_id].copy()
+    df = play_df[play_df["nfl_id"] == player_id].copy()
     if df.empty or len(df) < 5:
         return np.nan
 
@@ -664,9 +664,9 @@ def compute_improv_score(play_df, player_id, role="receiver"):
 
     if role == "receiver":
         # improvement in distance to landing point
-        if "landing_x" in df and "landing_y" in df:
-            lx = df["landing_x"].iloc[0]
-            ly = df["landing_y"].iloc[0]
+        if "ball_land_x" in df and "ball_land_y" in df:
+            lx = df["ball_land_x"].iloc[0]
+            ly = df["ball_land_y"].iloc[0]
 
             initial_dist = np.sqrt((df["x"].iloc[0] - lx)**2 +
                                    (df["y"].iloc[0] - ly)**2)
@@ -702,7 +702,7 @@ def compute_all_improv(df, role_map=None):
     Returns
     -------
     pd.DataFrame
-        Columns: play_id, nfl_player_id, improv_score
+        Columns: play_id, nfl_id, improv_score
     """
 
     results = []
@@ -711,7 +711,7 @@ def compute_all_improv(df, role_map=None):
     for play_id, play_df in df.groupby("play_id"):
 
         # Loop through each player in the play
-        for player_id in play_df["nfl_player_id"].unique():
+        for player_id in play_df["nfl_id"].unique():
 
             # Assign role
             role = "receiver"
@@ -723,8 +723,15 @@ def compute_all_improv(df, role_map=None):
 
             results.append({
                 "play_id": play_id,
-                "nfl_player_id": player_id,
+                "nfl_id": player_id,
                 "improv_score": score
             })
 
     return pd.DataFrame(results)
+
+
+test_df = pd.read_csv('processed/input_cleaned_w1_2_3.csv')
+
+subset = test_df.sample(frac=0.01, random_state=42)
+sample_results = compute_all_innovation(subset)
+print(sample_results.head())
