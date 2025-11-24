@@ -132,81 +132,95 @@ def compute_all_anticipation(df_input):
 # Pick the closest CB to the WR
 # Compute separation over every frame
 #=========================================================================================
-def score_S(distance_start, distance_end):
+def score_separation(delta_sep, role):
     """
-    Positive = defender closes separation.
-    Negative = loses separation.
+    WR: positive delta = gained separation = good
+    CB: negative delta = closed separation = good
     """
-    diff = distance_start - distance_end
+    #print((role, delta_sep))
+    if role == "Offense":
+        # WR creating space
+        if delta_sep >= 3:   return 10
+        if delta_sep >= 2:   return 8
+        if delta_sep >= 1:   return 6
+        if delta_sep >= 0.5: return 5
+        return 3
 
-    if diff >= 1.5: return 10
-    if diff >= 1.0: return 8
-    if diff >= 0.5: return 6
-    if diff >= 0:   return 5
-    return 3  # lost separation
+    else:  # CB (defender)
+        # CB closing space
+        if delta_sep <= -3:  return 10
+        if delta_sep <= -2:  return 8
+        if delta_sep <= -1:  return 6
+        if delta_sep <= -0.5:return 5
+        return 3
 
-# -----------------------------------------------------
-# Compute separation for one play (WR vs CB)
-# -----------------------------------------------------
-def compute_separation_for_play(g):
+
+# ------------------------------------------------------------
+# Compute separation for 1 WR or 1 CB in a single play
+# ------------------------------------------------------------
+def compute_player_separation(play_df, player_id):
     """
-    g = dataframe for a single play_id, containing WR and CB players.
+    Computes a player's separation score for one play.
+    Works for WRs and CBs.
     """
 
-    # Identify WR and CB rows
-    wr_df = g[g["player_position"] == "WR"].copy()
-    cb_df = g[g["player_position"] == "CB"].copy()
+    player_rows = play_df[play_df["nfl_id"] == player_id].sort_values("frame_id")
+    if len(player_rows) < 2:
+        return None
 
-    if wr_df.empty or cb_df.empty:
-        return None  # can't compute separation
+    role = player_rows["player_side"].iloc[0]
 
-    # For this simplified model, assume:
-    # - first WR is the target
-    wr_id = wr_df["nfl_id"].iloc[0]
 
-    wr = wr_df[wr_df["nfl_id"] == wr_id].sort_values("frame_id")
+    # Identify opponents (opposite side: offense vs defense)
+    opp_df = play_df[play_df["player_side"] != role].copy()
+    if opp_df.empty:
+        return None
 
     separations = []
 
-    # Loop by frame
-    for f, wr_row in wr.iterrows():
+    # Loop through each frame of this player
+    for _, p in player_rows.iterrows():
 
-        cb_df_same_frame = cb_df[cb_df["frame_id"] == wr_row["frame_id"]]
-        if cb_df_same_frame.empty:
+        frame = p["frame_id"]
+        opp_same_frame = opp_df[opp_df["frame_id"] == frame]
+        if opp_same_frame.empty:
             continue
 
-        # distance to each CB, keep the minimum (primary defender)
-        dists = np.sqrt((cb_df_same_frame["x"] - wr_row["x"])**2 +
-                        (cb_df_same_frame["y"] - wr_row["y"])**2)
-
+        # Distance to all opponents in this frame; use minimum
+        dists = np.sqrt((opp_same_frame["x"] - p["x"])**2 +
+                        (opp_same_frame["y"] - p["y"])**2)
         separations.append(dists.min())
 
-    if len(separations) == 0:
+    if len(separations) < 2:
         return None
 
-    avg_sep = np.mean(separations)
+    start_sep = separations[0]
+    end_sep = separations[-1]
 
-    return score_S(avg_sep)
+    delta_sep = end_sep - start_sep  # WR positive good, CB negative good
+    score = score_separation(delta_sep, role)
+
+    return round(float(score), 2)
 
 
-# -----------------------------------------------------
-# Apply to whole dataset
-# -----------------------------------------------------
-def compute_all_separation(df_input):
+# ------------------------------------------------------------
+# Apply to all players in all plays
+# ------------------------------------------------------------
+def compute_all_separation(df):
     """
-    Returns dataframe with: play_id, S score
-    Each play produces one Separation score.
+    Returns: play_id | nfl_id | S
     """
 
     results = []
 
-    for play_id, g in df_input.groupby("play_id"):
-        S = compute_separation_for_play(g)
-        if S is not None:
-            results.append([play_id, S])
+    for play_id, play_df in df.groupby("play_id"):
+        for player_id in play_df["nfl_id"].unique():
 
-    return pd.DataFrame(results, columns=["play_id", "S"])
+            S = compute_player_separation(play_df, player_id)
+            if S is not None:
+                results.append([play_id, player_id, S])
 
+    return pd.DataFrame(results, columns=["play_id", "nfl_id", "S"])
 
 
 
@@ -408,7 +422,7 @@ def compute_eyes_score(play_df, landing_point, player_id):
 # ------------------------------------------------------
 # Apply Eyes scoring to the entire dataset
 # ------------------------------------------------------
-def compute_all_eyes(df, landing_points):
+def compute_all_eyes(df):
     """
     Computes Eyes score for all players in all plays.
 
@@ -416,9 +430,6 @@ def compute_all_eyes(df, landing_points):
     ----------
     df : pd.DataFrame
         Full tracking dataframe (ball-in-air frames only).
-    landing_points : dict
-        Mapping play_id -> (ball_land_x, ball_land_y) tuple.
-
     Returns
     -------
     pd.DataFrame
@@ -431,17 +442,14 @@ def compute_all_eyes(df, landing_points):
     for play_id, play_df in df.groupby("play_id"):
 
         # Must have landing point info
-        if play_id not in landing_points:
+        if play_id not in df['play_id'].unique():
             continue
-
-        landing_point = landing_points[play_id]
 
         # Loop through each player in the play
         for player_id in play_df["nfl_id"].unique():
-
             score = compute_eyes_score(
                 play_df=play_df,
-                landing_point=landing_point,
+                landing_point=(df[(df['play_id']==play_id) & (df['nfl_id']==player_id)]['ball_land_x'], df[(df['play_id']==play_id) & (df['nfl_id']==player_id)]['ball_land_y']),
                 player_id=player_id
             )
 
@@ -484,7 +492,7 @@ def score_Innovation(innovation_metric):
 # ------------------------------------------------------
 # Compute Innovation for one player in one play
 # ------------------------------------------------------
-def compute_innovation_score(play_df, player_id, role="receiver"):
+def compute_innovation_score(play_df, player_id, role):
     """
     Computes Innovation score (0–10) for one player in one play.
     
@@ -537,7 +545,7 @@ def compute_innovation_score(play_df, player_id, role="receiver"):
     # Defender: getting closer to receiver
     effectiveness = 0
 
-    if role == "receiver":
+    if role == "Offense":
         if "ball_land_x" in df and "ball_land_y" in df:
             final_dist = np.sqrt((df["x"].iloc[-1] - df["ball_land_x"].iloc[-1])**2 +
                                  (df["y"].iloc[-1] - df["ball_land_y"].iloc[-1])**2)
@@ -592,9 +600,12 @@ def compute_all_innovation(df, role_map=None):
         for player_id in play_df["nfl_id"].unique():
 
             # Get role for player
-            role = "receiver"
-            if role_map is not None and player_id in role_map:
-                role = role_map[player_id]
+            player_rows = play_df[play_df["nfl_id"] == player_id]
+
+            if player_rows.empty:
+                continue  # should never happen but safe
+
+            role = player_rows["player_side"].iloc[0]
 
             # Compute Innovation for this player in this play
             score = compute_innovation_score(play_df, player_id, role)
@@ -618,7 +629,7 @@ def compute_all_innovation(df, role_map=None):
 # Improvised Outcome Gain - Did the reaction actually improve the play?
 #   Receiver: moved closer to ball | Defender: reduced separation
 #=========================================================================================
-def compute_improv_score(play_df, player_id, role="receiver"):
+def compute_improv_score(play_df, player_id, role):
     """
     Computes Improv Index (0–10) for one player in one play.
 
@@ -633,9 +644,13 @@ def compute_improv_score(play_df, player_id, role="receiver"):
     # sudden speed changes
     speed = df["s"].values
     speed_diff = np.abs(np.diff(speed))
+    
+    
+    dx = df["x"].diff().fillna(0)
+    dy = df["y"].diff().fillna(0)
 
     # sudden direction changes
-    directions = np.degrees(np.arctan2(df["y"].diff(), df["x"].diff())) % 360
+    directions = np.degrees(np.arctan2(dy, dx)) % 360
     dir_diff = np.abs((np.diff(directions) + 180) % 360 - 180)
 
     # measure disruption magnitude
@@ -662,9 +677,9 @@ def compute_improv_score(play_df, player_id, role="receiver"):
     # 3. Outcome Gain (G)
     G = 0
 
-    if role == "receiver":
+    if role == "Offense":
         # improvement in distance to landing point
-        if "ball_land_x" in df and "ball_land_y" in df:
+        if "ball_land_x" in df.columns and "ball_land_y" in df.columns:
             lx = df["ball_land_x"].iloc[0]
             ly = df["ball_land_y"].iloc[0]
 
@@ -675,7 +690,7 @@ def compute_improv_score(play_df, player_id, role="receiver"):
             G = np.clip(initial_dist - final_dist, 0, 10)
 
     else:  # defender
-        if "target_separation" in df:
+        if "target_separation" in df.columns:
             sep0 = df["target_separation"].iloc[0]
             sep1 = df["target_separation"].iloc[-1]
             G = np.clip(sep0 - sep1, 0, 10)
@@ -687,7 +702,7 @@ def compute_improv_score(play_df, player_id, role="receiver"):
 # ------------------------------------------------------
 # Compute Innovation for the entire dataset
 # ------------------------------------------------------
-def compute_all_improv(df, role_map=None):
+def compute_all_improv(df):
     """
     Computes Improv Index (I) for all players in all plays.
 
@@ -714,9 +729,12 @@ def compute_all_improv(df, role_map=None):
         for player_id in play_df["nfl_id"].unique():
 
             # Assign role
-            role = "receiver"
-            if role_map is not None and player_id in role_map:
-                role = role_map[player_id]
+            player_rows = play_df[play_df["nfl_id"] == player_id]
+
+            if player_rows.empty:
+                continue  # should never happen but safe
+
+            role = player_rows["player_side"].iloc[0]
 
             # Compute improv score for that player in that play
             score = compute_improv_score(play_df, player_id, role)
@@ -732,6 +750,8 @@ def compute_all_improv(df, role_map=None):
 
 test_df = pd.read_csv('processed/input_cleaned_w1_2_3.csv')
 
-subset = test_df.sample(frac=0.01, random_state=42)
-sample_results = compute_all_innovation(subset)
-print(sample_results.head())
+sample_play_ids = test_df["play_id"].drop_duplicates().sample(frac=0.01, random_state=42)
+subset = test_df[test_df["play_id"].isin(sample_play_ids)]
+
+sample_results = compute_all_per10_360(compute_all_anticipation(subset), compute_all_separation(subset), compute_all_execution(subset), compute_all_eyes(subset), compute_all_innovation(subset), compute_all_improv(subset))
+print(sample_results)
