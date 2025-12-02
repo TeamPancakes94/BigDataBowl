@@ -748,10 +748,10 @@ def compute_all_improv(df):
     return pd.DataFrame(results)
 
 
-test_df = pd.read_csv('processed/input_cleaned_w1_2_3.csv')
+# test_df = pd.read_csv('processed/input_cleaned_w1_2_3.csv')
 
-sample_play_ids = test_df["play_id"].drop_duplicates().sample(frac=0.01, random_state=42)
-subset = test_df[test_df["play_id"].isin(sample_play_ids)]
+# sample_play_ids = test_df["play_id"].drop_duplicates().sample(frac=0.01, random_state=42)
+# subset = test_df[test_df["play_id"].isin(sample_play_ids)]
 
-sample_results = compute_all_per10_360(compute_all_anticipation(subset), compute_all_separation(subset), compute_all_execution(subset), compute_all_eyes(subset), compute_all_innovation(subset), compute_all_improv(subset))
-print(sample_results)
+# sample_results = compute_all_per10_360(compute_all_anticipation(subset), compute_all_separation(subset), compute_all_execution(subset), compute_all_eyes(subset), compute_all_innovation(subset), compute_all_improv(subset))
+# print(sample_results)
