@@ -38,6 +38,9 @@ def generate_coordinates_csv(df, out_path="coordinates.csv"):
 
     return out_df
 
-df = pd.read_csv("../processed/final_labeled_data.csv")
+all_df = pd.read_csv("processed/input_cleaned_w1_2_3.csv")
+labeled_df = pd.read_csv("processed/final_labeled_data.csv")
+labeled_plays = labeled_df["play_id"].unique()
+df = all_df[all_df["play_id"].isin(labeled_plays)]
 coords = generate_coordinates_csv(df, "coordinates.csv")
 coords.head()
