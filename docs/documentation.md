@@ -75,3 +75,196 @@ The result is a transparent, scalable framework for scouting, coaching, and anal
 
 <h1> Section 3 <h1>
 
+<h2>PER-10, Improv, and Bayesian System — Explanation</h2>
+
+### PER-10 Overview
+
+The PER-10 model is a composite scoring system that evaluates a player’s Ball IQ during each play.
+
+PER-10 is a simple, interpretable 1–10 score based on six pillars:
+
+- A — Anticipation
+- S — Separation (WR creation / DB denial)
+- E — Execution + Technique
+- Eyes — Ball Tracking / Vision
+- Innovation — Creative, effective mid-play adjustments
+- Improv — Disruption response & off-script performance
+
+Each pillar already produces a 1–10 value.
+PER-10 is simply the mean of the six pillars, rounded to the nearest whole number
+
+### How Each PER-10 Pillar Is Calculated
+
+**Anticipation (A)**
+
+**What it measures:**
+How quickly the player begins moving toward the ball after the ball is released.
+
+**Inputs**:
+- Frame of ball release
+- First frame of purposeful movement toward ball
+- Change in directional velocity
+- Time difference between WR and DB reactions
+
+**Calculation:**
+
+- Compute Δt = time between ball release and player's first directional movement toward catch point.
+- Convert to a percentile within the sample of the rep (WR vs DB).
+- Map percentile → 1–10 scale.
+
+**Interpretation:**
+
+- 10 = instant movement, earliest reaction
+- 1 = worst reaction or no identifiable reaction
+
+**Separation / Space (S)**
+
+**What it measures:**
+Whether the player created (WR) or denied (DB) usable space at the catch point.
+
+**Inputs:**
+
+- Player positions (x, y) for each frame
+- Horizontal/vertical separation at catch point
+- Relative speed & acceleration before arrival
+
+**Calculation:**
+
+Track player-to-opponent distance across frames.
+
+- For WR: more positive separation → higher score.
+- For DB: less separation or separation reduction → higher score.
+
+Normalize distance vs expected baseline → convert to 1–10 score.
+
+**Interpretation:**
+
+- 10 = WR creates clear window; DB closes distance completely
+- 1 = WR smothered; DB burned
+
+**E — Execution**
+
+**What It Measures**
+
+Overall technical quality of movement, including efficiency, body control, and ability to maintain leverage through the rep.
+
+**Inputs**
+
+- Direction smoothness (how jerky or clean movement is)
+- Orientation control (how well body alignment matches movement)
+- Path consistency (how stable footwork and angles are throughout the rep)
+- How the Score Is Calculated
+- Combine three elements:
+- Smoothness of directional changes
+- Body alignment consistency
+- Stability of path / footwork
+- More stable, controlled, and efficient movement → higher Execution score.
+
+**Interpretation**
+
+- 10: Textbook mechanics; fully controlled movement
+- 7–9: Strong technique with minor inefficiencies
+- 4–6: Occasional balance or leverage issues
+- 1–3: Poor control, unstable steps, inefficient path
+
+**Eyes — Ball Tracking / Vision**
+
+**What It Measures**
+
+How early and how accurately a player locates, tracks, and orients to the ball as it travels.
+
+**Inputs**
+
+- Angle between player head orientation and ball trajectory
+- Stability of ball tracking
+- Time until ball is visually picked up
+- How the Score Is Calculated
+- Based on three weighted components:
+- Alignment – How directly the player is looking at the ball
+- Tracking Stability – How steady their tracking is across frames
+- Reaction Time – How quickly they locate the ball after release
+- Higher alignment + earlier tracking + stable vision = higher score.
+
+**Interpretation**
+
+- 10: Instant, continuous ball tracking
+
+- 7–9: Early pickup, good discipline
+
+- 4–6: Late or inconsistent tracking
+
+- 1–3: Never properly locates ball
+
+**Innovation**
+
+**What It Measures**
+
+Creative, intentional adjustments that improve the outcome of the rep beyond the designed route or coverage.
+
+This captures smart creativity, not randomness.
+
+**Inputs**
+
+- Size and timing of directional changes (cuts, pivots, micro-stems)
+- Deviation from predicted / linear movement
+- Impact of the adjustment (space created, angle improved, contest ability)
+
+**How the Score Is Calculated**
+
+Three components contribute:
+
+- Creativity of movement (quality of cuts / changes)
+- Non-linearity (use of deception or nonstandard pacing)
+- Effectiveness (does the adjustment improve outcome?)
+- High-impact, intentional innovations → high score.
+
+**Interpretation**
+
+- 10: Clear, decisive innovation that changes the play
+- 8–9: Strong improvisational idea with real effect
+- 6–7: Minor but useful creativity
+- 4–5: Neutral; adds little
+- 1–3: Counterproductive or confusing adjustment
+
+**Improv (I)**
+
+**What It Measures**
+
+Real-time adaptability when the rep breaks from the script — reacting to unexpected movement, pressure, or ball placement.
+
+Innovation = deliberate creativity
+Improv = reactive creativity
+
+**Inputs**
+
+- Sudden adjustments after unplanned events
+- Recovery steps, redirections, bailout paths
+- How well the player salvages the rep
+- How the Score Is Calculated
+- Evaluate how often and how effectively the player makes successful reactive adjustments.
+- Good improv means the player can recover efficiently under chaos.
+
+**Interpretation**
+
+- 10: Elite adaptability; turns broken plays into wins
+- 7–9: Strong reaction ability; rarely panics
+- 4–6: Sometimes recovers, sometimes struggles
+- 1–3: Poor reaction; breakdowns cause negative outcomes
+
+**Overall Use**
+
+All six scores create the analytical backbone for **PER-10 and PER-10 360**:
+
+**PER-10 = average(A, S, E, Eyes, Innovation)**
+
+**PER-10 360 = average(A, S, E, Eyes, Innovation, Improv)**
+
+
+Together they reflect:
+
+- speed of recognition
+- technical skill
+- spatial performance
+- visual intelligence
+- creative problem solving
+- chaos adaptability
