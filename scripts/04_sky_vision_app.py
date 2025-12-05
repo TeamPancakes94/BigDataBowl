@@ -10,7 +10,7 @@ import pandas as pd
 import streamlit as st
 
 # Paths
-# ---------------
+# ------------------
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "outputs"
 POST_DIR = OUT_DIR / "posterior"
