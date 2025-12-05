@@ -268,3 +268,52 @@ Together they reflect:
 - visual intelligence
 - creative problem solving
 - chaos adaptability
+
+## Bayesian System—  Trait Tracking Over Time
+
+The Bayesian layer is the engine of the player rating system.
+
+It answers one question:
+
+“Based on every play we’ve seen, what is our best estimate of this player’s true talent?”
+
+Instead of averaging or summing ratings, it uses Bayesian updating, which is a method for refining a belief every time you see new evidence.
+
+**What the Bayesian Update Is**
+
+A system that:
+
+- Starts with a neutral assumption about a player (middle score, high uncertainty)
+- Looks at each new play’s trait score
+- Updates the estimated “true ability”
+- Reduces uncertainty as more plays are observed
+
+It acts like a coach gaining confidence:
+
+- Early on, one good or bad play changes what you think a lot
+- Later on, when you’ve seen many plays, one new play shifts your opinion only a little
+
+**What the Bayesian Update Is For**
+
+It allows the system to:
+
+- Track player talent continuously
+- Smooth out randomness from single plays
+- Get more confident as more data comes in
+- Handle players with few snaps and players with hundreds
+- React appropriately to hot streaks or declining performance
+
+In simple terms:
+
+- Stability: prevents overreacting to one great or terrible play
+- Adaptability: still adjusts as a player genuinely improves or worsens
+- Fairness: players who play more get more accurate ratings
+- Uncertainty tracking: you know how confident you are in the rating, not just the rating itself
+
+**How Scores Are Interpreted**
+
+Just like the trait scores:
+
+- 10 = exceptional player-level ability
+- 1 = poor ability
+- 5 = league-average (starting point for everyone)
