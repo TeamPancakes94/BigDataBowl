@@ -16,7 +16,9 @@ Conclusion: PER10 successfully differentiates execution quality for both sides o
 
 Players classified as Quick Instinct (QI) \[Top 25% of Eyes and Innovation or Improv Score\] demonstrated superior PER10 performance: - QI mean PER10: 6.47 - Other mean PER10: 5.44 - t-statistic: 6.3254 - p-value: 0.0 - Cohen's d: 1.447 (very large effect)
 
-Conclusion: Quick Instinct players are quantitatively better at ball interaction and decision execution. **4\. Predictive Modeling**
+Conclusion: Quick Instinct players are quantitatively better at ball interaction and decision execution. 
+
+**4\. Predictive Modeling**
 
 Model Results: Accuracy: 0.533 AUC: 0.575
 
