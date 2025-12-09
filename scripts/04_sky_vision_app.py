@@ -13,44 +13,80 @@ import streamlit as st
 # -----------------------------
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "outputs"
-POST_DIR = OUT_DIR / "posterior"
 
-PILLARS_CSV = POST_DIR / "posterior_pillars.csv"
-OVERALL_CSV = POST_DIR / "posterior_overall.csv"
-CORE_CSV = OUT_DIR / "merged_core.csv"
+# New canonical files from the PER-10 / Ball IQ pipeline
+TRAITS_CSV = OUT_DIR / "per10_traits.csv"             
+BAYES_CSV  = OUT_DIR / "bayesian_player_ratings.csv"   
+CORE_CSV   = OUT_DIR / "merged_core.csv"               
 
 # canonical pillar order (for tables)
-WR_PILLARS = ["anticipation", "execution", "separation", "innovation", "eyes"]
-DB_PILLARS = ["coverage", "reaction"]
-ALL_PILLARS = WR_PILLARS + [p for p in DB_PILLARS if p not in WR_PILLARS]
+WR_PILLARS = [
+    "anticipation",
+    "execution",
+    "separation",
+    "innovation",
+    "eyes",
+    "improv",      
+]
 
+DB_PILLARS = [
+    "coverage",
+    "reaction",
+    "improv",   
+]
+
+ALL_PILLARS = WR_PILLARS + [p for p in DB_PILLARS if p not in WR_PILLARS]
 
 
 # Data loading
 # ------------------
 @st.cache_data(show_spinner=True)
 def load_data():
-    """Load posterior pillars, overall, and roster, and build a clean player pool."""
-    if not PILLARS_CSV.exists() or not OVERALL_CSV.exists():
+    """
+    Load:
+      - per10_traits.csv               → per-play PER-10 pillar scores
+      - bayesian_player_ratings.csv   → final player ratings (overall_0_100)
+      - merged_core.csv               → roster (names, positions)
+
+    Returns:
+      pillars : long-form pillar table (player_id, side, pillar, score_1_10)
+      ratings : Bayesian overall ratings + roster info + side
+      pool    : clean player list for dropdowns
+    """
+
+    # --- existence checks ---
+    if not TRAITS_CSV.exists():
         raise FileNotFoundError(
-            "Posterior files not found. Run 02_extract_pillars.py and 03_update_posterior.py first."
+            f"per10_traits.csv not found at {TRAITS_CSV}. "
+            "Run 02_extract_pillars.py first."
+        )
+    if not BAYES_CSV.exists():
+        raise FileNotFoundError(
+            f"bayesian_player_ratings.csv not found at {BAYES_CSV}. "
+            "Run model_update.py after 02_extract_pillars.py."
         )
     if not CORE_CSV.exists():
         raise FileNotFoundError(
-            "merged_core.csv not found. Run 01_merge_pipeline.py first."
+            f"merged_core.csv not found at {CORE_CSV}. "
+            "Run 01_merge_pipeline.py first."
         )
 
-    pillars = pd.read_csv(PILLARS_CSV)
-    overall = pd.read_csv(OVERALL_CSV)
-    core = pd.read_csv(CORE_CSV)
+    # --- load data ---
+    traits  = pd.read_csv(TRAITS_CSV)
+    ratings = pd.read_csv(BAYES_CSV)
+    core    = pd.read_csv(CORE_CSV)
 
     # normalize column names
-    for df in (pillars, overall, core):
+    for df in (traits, ratings, core):
         df.columns = [c.lower() for c in df.columns]
 
-    # core has nfl_id; rename to player_id
+    # harmonize id columns
+    if "nfl_id" in traits.columns:
+        traits = traits.rename(columns={"nfl_id": "player_id"})
     if "nfl_id" in core.columns:
         core = core.rename(columns={"nfl_id": "player_id"})
+    if "nfl_id" in ratings.columns and "player_id" not in ratings.columns:
+        ratings = ratings.rename(columns={"nfl_id": "player_id"})
 
     # minimal roster (names + positions)
     roster = (
@@ -59,26 +95,79 @@ def load_data():
         .drop_duplicates()
     )
 
-    # attach roster info to posterior dfs
-    pillars = pillars.merge(roster, on="player_id", how="left")
-    overall = overall.merge(roster, on="player_id", how="left")
+    # attach roster info
+    traits  = traits.merge(roster, on="player_id", how="left")
+    ratings = ratings.merge(roster, on="player_id", how="left")
 
-    # "pool" = all players that actually have an overall score (so WR/DB only)
+    # derive side (WR/DB) from player_side in traits
+    if "player_side" in traits.columns:
+        traits["side"] = traits["player_side"].map(
+            {"Offense": "WR", "Defense": "DB"}
+        ).fillna(traits["player_side"])
+    else:
+        traits["side"] = np.nan
+
+    # also put side onto ratings (for dropdown + comparison views)
+    side_map = (
+        traits[["player_id", "side"]]
+        .dropna(subset=["side"])
+        .drop_duplicates()
+    )
+    ratings = ratings.merge(side_map, on="player_id", how="left")
+
+    # --- compute PER-10 per player (average over plays) ---
+    if "per10_360" in traits.columns:
+        per10_players = (
+            traits.groupby(["player_id", "side"])["per10_360"]
+            .mean()
+            .reset_index()
+            .rename(columns={"per10_360": "per10"})
+        )
+        ratings = ratings.merge(per10_players, on=["player_id", "side"], how="left")
+    else:
+        ratings["per10"] = np.nan
+
+
+    # --- build long-form pillars table from traits ---
+    # traits columns (after lowercasing) include: a, s, e, eyes, innovation, improv
+    pillar_map = {
+        "anticipation": "a",
+        "separation":  "s",
+        "execution":   "e",
+        "eyes":        "eyes",
+        "innovation":  "innovation",
+        "improv":      "improv",
+    }
+
+    rows = []
+    for pillar, col in pillar_map.items():
+        if col in traits.columns:
+            tmp = traits[["player_id", "side", col]].copy()
+            tmp = tmp.rename(columns={col: "score_1_10"})
+            tmp["pillar"] = pillar
+            rows.append(tmp)
+
+    if rows:
+        pillars = pd.concat(rows, ignore_index=True)
+    else:
+        pillars = pd.DataFrame(
+            columns=["player_id", "side", "pillar", "score_1_10"]
+        )
+
+    # build dropdown pool from ratings
     pool = (
-        overall[["player_id", "player_name", "player_position", "side"]]
+        ratings[["player_id", "player_name", "player_position", "side"]]
         .dropna(subset=["player_id", "side"])
         .drop_duplicates()
         .sort_values(["side", "player_position", "player_name"])
     )
 
-    # create a label for dropdowns: "Name · POS · side"
     pool["label"] = pool.apply(
-        lambda r: f"{r.player_name} · {r.player_position or ''} · {r.side}",
+        lambda r: f"{r.player_name} · {r.player_position or ''} · {r.side or ''}",
         axis=1,
     )
 
-    return pillars, overall, pool
-
+    return pillars, ratings, pool
 
 
 # helper functions

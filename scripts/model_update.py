@@ -24,7 +24,8 @@ POSITION_WEIGHTS = {
 def compute_weighted_trait_score(row):
     """
     row = one row of per-play trait data for one player.
-    Must include: ['player_side', 'A', 'S', 'E', 'Eyes', 'Improv'].
+    Uses whatever pillars are present (A, S, E, Eyes, Improv),
+    skipping NaNs and re-normalizing the weights.
     """
     role = row["player_side"]
     weights = POSITION_WEIGHTS.get(role)
@@ -32,15 +33,22 @@ def compute_weighted_trait_score(row):
     if weights is None:
         return np.nan
 
-    score = (
-        weights["A"]      * row["A"] +
-        weights["S"]      * row["S"] +
-        weights["E"]      * row["E"] +
-        weights["Eyes"]   * row["Eyes"] +
-        weights["Improv"] * row["Improv"]
-    )
+    numer = 0.0
+    denom = 0.0
 
+    for pillar, w in weights.items():
+        val = row.get(pillar)
+        if pd.notna(val):
+            numer += w * float(val)
+            denom += w
+
+    if denom == 0:
+        # no usable pillars for this play
+        return np.nan
+
+    score = numer / denom
     return float(round(score, 3))
+
 
 
 def bayesian_update(prior_mean, prior_var, observation, obs_var=1.0):

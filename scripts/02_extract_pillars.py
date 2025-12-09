@@ -133,8 +133,9 @@ def main():
 
     # game_id + player_side from the full input tracking
     meta_cols = (
-    inp[["game_id", "play_id", "nfl_id", "player_side"]]
-    .drop_duplicates()
+        inp[["game_id", "play_id", "nfl_id", "player_side"]]
+        .drop_duplicates()
+        .rename(columns={"player_role": "player_side"})
     )
 
 
