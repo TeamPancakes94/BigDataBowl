@@ -74,8 +74,6 @@ def score_A(anticipation_frames):
     if anticipation_frames <= 7: return 4
     return 2
 
-
-
 # -----------------------------------------------
 # Main function: compute anticipation for one player in one play
 # -----------------------------------------------

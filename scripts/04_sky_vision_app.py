@@ -81,7 +81,7 @@ def load_data():
 
 
 
-# Helper functions
+# helper functions
 # ---------------------------
 def pillar_order_for_side(side: str) -> List[str]:
     return WR_PILLARS if side == "WR" else DB_PILLARS

@@ -28,7 +28,7 @@ TRAIN = ROOT / "train"
 OUT   = ROOT / "outputs"
 OUT.mkdir(parents=True, exist_ok=True)
 
-# column normalization & loader
+# column normalization
 COLMAP = {
     "gameId": "game_id",
     "playId": "play_id",
