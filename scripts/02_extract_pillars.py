@@ -10,6 +10,16 @@ from glob import glob
 from _utils_data import load_weeks
 from _utils_ball import find_throw_and_arrival, slice_ball_window, eyes_score
 
+from per10 import (
+    compute_all_anticipation,
+    compute_all_separation,
+    compute_all_execution,
+    compute_all_eyes,
+    compute_all_innovation,
+    compute_all_improv,
+    compute_all_per10_360,
+)
+
 FPS = 10.0
 MS_PER_FRAME = 1000.0 / FPS  # 100 ms/frame
 
@@ -18,7 +28,7 @@ TRAIN = ROOT / "train"
 OUT   = ROOT / "outputs"
 OUT.mkdir(parents=True, exist_ok=True)
 
-# --- column normalization + robust loader ---
+# column normalization & loader
 COLMAP = {
     "gameId": "game_id",
     "playId": "play_id",
@@ -63,7 +73,6 @@ def load_concat(pattern, limit=None, kind="input"):
         raise KeyError("Input files must contain 'player_role'")
 
     return df
-# --- end replacement ---
 
 def first_move_frame(g):
     m = g[g["s"] > 0.5]
@@ -86,18 +95,61 @@ def main():
     inp  = load_concat("input_2023_w*.csv",  limit=2, kind="input")
     outp = load_concat("output_2023_w*.csv", limit=2, kind="output")
 
-    # Replace your old throw proxy / last-N logic for ball-in-air
+    # last-N logic for ball-in-air
     anchors = find_throw_and_arrival(inp, outp)
 
-    # Slice to the true ball-in-air window for tracking-derived pillars:
+    # slice to the true ball-in-air window for tracking-derived pillars
     inp_window = slice_ball_window(inp, anchors)
     out_window = slice_ball_window(outp, anchors)
 
-    # Compute EYES (1–10) per player in window
-    # Choose which angle column you trust ('dir' or 'o')
+    # Compute EYES (1–10) per player in window & choose angle ('dir' or 'o')
     angle_col = "dir" if "dir" in inp_window.columns else "o"
-    eyes = eyes_score(inp_window, angle_col=angle_col)  # columns: game_id, play_id, nfl_id, eyes_1_10
-    # end of ball-in-air window implementation 
+    eyes = eyes_score(inp_window, angle_col=angle_col)  # columns
+
+
+    # Update: with per10.py, use the ball-in-air tracking window (inp_window)
+    # -----------------------------------------------------------------------------------------------------------
+    window_df = inp_window.copy()
+
+    # normalized columns
+    window_df.columns = [c.lower() for c in window_df.columns]
+
+    # These functions expect per-play/per-player tracking in the ball-in-air window
+    A_df      = compute_all_anticipation(window_df)   
+    S_df      = compute_all_separation(window_df)   
+    E_df      = compute_all_execution(window_df)     
+    Eyes_df   = compute_all_eyes(window_df)           
+    Innov_df  = compute_all_innovation(window_df)     
+    Improv_df = compute_all_improv(window_df)         
+
+    per10_df = compute_all_per10_360(
+        A_df,
+        S_df,
+        E_df,
+        Eyes_df,
+        Innov_df,
+        Improv_df,
+    )
+
+    # game_id + player_side from the full input tracking
+    meta_cols = (
+    inp[["game_id", "play_id", "nfl_id", "player_side"]]
+    .drop_duplicates()
+    )
+
+
+    per10_traits = per10_df.merge(
+        meta_cols,
+        on=["play_id", "nfl_id"],
+        how="left",
+    )
+
+    # traits table 
+    per10_out_path = OUT / "per10_traits.csv"
+    per10_traits.to_csv(per10_out_path, index=False)
+    print("Saved PER-10 traits →", per10_out_path.resolve(), "rows:", len(per10_traits))
+
+    ## ------ end of updated-ball-in-air tracking window ------------------------------------------------
 
     # Attach player_role to output rows (output files usually lack it)
     roles = (
@@ -179,7 +231,7 @@ def main():
                .merge(wr_innov,  on=["game_id","play_id","nfl_id"], how="left")
                .merge(wr_sep,    on=["game_id","play_id","nfl_id"], how="left"))
     
-    # Add Eyes scores to WR feature table
+    # eyes scores to WR feature table
     wr_feat = wr_feat.merge(eyes.rename(columns={"eyes_1_10": "eyes_score"}), on=["game_id", "play_id", "nfl_id"], how="left")
 
 

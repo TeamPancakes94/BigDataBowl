@@ -7,11 +7,19 @@ import pandas as pd
 def compute_per10_360(A, S, E, Eyes, Innovation, Improv):
     """
     Compute Ball IQ PER-10 score.
-    Inputs must already be values from 1 to 10.
+    Inputs should be 1–10, but may contain NaN.
     """
     vals = np.array([A, S, E, Eyes, Innovation, Improv], dtype=float)
-    per10_360 = np.round(vals.mean(), 0)
-    return int(per10_360)
+
+    # drop NaNs so missing pillars don't blow up the average
+    vals = vals[~np.isnan(vals)]
+
+    # If everything is missing, return NaN
+    if len(vals) == 0:
+        return np.nan
+
+    per10_360 = np.nanmean(vals)          
+    return float(np.round(per10_360, 0))  # safe: stays float, no int(NaN) issues
 
 #=========================================================================================
 # Outputs a DF with the Following Columns (basically a summary table) for a play id

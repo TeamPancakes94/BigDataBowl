@@ -1,4 +1,4 @@
-# scripts/06_sky_vision_app.py
+# scripts/04_sky_vision_app.py
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import pandas as pd
 import streamlit as st
 
 # Paths
-# ------------------
+# -----------------------------
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "outputs"
 POST_DIR = OUT_DIR / "posterior"
@@ -343,7 +343,6 @@ def view_movement_spatial():
         for example, WR and DB paths from ball snap to catch/arrival, 
         colored by separation and leverage. 
         
-        (Hook here for your future matplotlib/plotly animations using tracking data.)
         """
     )
 
@@ -352,13 +351,11 @@ def view_play_example():
     st.subheader("Play example breakdown")
     st.write(
         """
-        Here we will feature a high-profile rep (e.g., a critical 3rd-down throw),
-        and show:
+        Here we will feature a high-profile rep and show:
         - the Sky Vision pillar scores for that rep
         - why the WR or DB “won” the matchup
         - the tracking-based movement view, aligned with video.
         
-        For now this is a placeholder with text only.
         """
     )
 
