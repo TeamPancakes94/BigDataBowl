@@ -38,9 +38,26 @@ def generate_coordinates_csv(df, out_path="coordinates.csv"):
 
     return out_df
 
+'''
 all_df = pd.read_csv("processed/input_cleaned_w1_2_3.csv")
 labeled_df = pd.read_csv("processed/final_labeled_data.csv")
 labeled_plays = labeled_df["play_id"].unique()
 df = all_df[all_df["play_id"].isin(labeled_plays)]
 coords = generate_coordinates_csv(df, "coordinates.csv")
 coords.head()
+'''
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "outputs"
+OUT.mkdir(parents=True, exist_ok=True)
+
+all_df = pd.read_csv(ROOT / "processed/input_cleaned_w1_2_3.csv")
+labeled_df = pd.read_csv(ROOT / "processed/final_labeled_data.csv")
+labeled_plays = labeled_df["play_id"].unique()
+
+df = all_df.copy()
+
+# write into outputs/coordinates.csv
+coords = generate_coordinates_csv(df, OUT / "coordinates.csv")
+print("Wrote coordinates →", (OUT / "coordinates.csv").resolve())

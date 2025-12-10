@@ -1,6 +1,7 @@
 # scripts/04_sky_vision_app.py
 
 from __future__ import annotations
+from sky_views import view_movement_spatial, view_play_example
 
 from pathlib import Path
 from typing import Dict, List
@@ -422,32 +423,6 @@ def view_advanced_stats(pillars: pd.DataFrame, overall: pd.DataFrame):
 
     st.markdown("##### Posterior overall (per player × side)")
     st.dataframe(overall, use_container_width=True)
-
-
-def view_movement_spatial():
-    st.subheader("Movement & spatial view")
-    st.write(
-        """
-        This tab will show route trails and spacing for selected plays – 
-        for example, WR and DB paths from ball snap to catch/arrival, 
-        colored by separation and leverage. 
-        
-        """
-    )
-
-
-def view_play_example():
-    st.subheader("Play example breakdown")
-    st.write(
-        """
-        Here we will feature a high-profile rep and show:
-        - the Sky Vision pillar scores for that rep
-        - why the WR or DB “won” the matchup
-        - the tracking-based movement view, aligned with video.
-        
-        """
-    )
-
 
 def view_pillar_guide():
     st.subheader("Pillar guide")
