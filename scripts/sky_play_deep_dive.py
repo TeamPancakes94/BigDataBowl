@@ -347,7 +347,7 @@ def load_play_table() -> pd.DataFrame:
 
 # PLAY DEEP DIVE VIEW --------------------------------
 
-def play_deep_dive(): 
+def play_deep_dive():
     """
     Play Deep Dive:
     Interactive WR vs DB play breakdown, using real NFL plays from merged_core.csv.

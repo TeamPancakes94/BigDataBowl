@@ -7,13 +7,14 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+
 import plotly.express as px
 import streamlit as st
 import streamlit.components.v1 as components
 
 # External view modules
 from sky_views import view_movement_spatial          # Movement & Spatial tab
-from sky_play_deep_dive import view_play_deep_dive, load_core_raw   # Play Deep Dive tab
+from sky_play_deep_dive import play_deep_dive, load_core_raw # Play Deep Dive tab
 from sky_overview import view_welcome                # Landing page with hero + pillars
 
 
@@ -2797,8 +2798,6 @@ raw separation or speed alone.
             go("assess")
 
 
-
-# ---------- MAIN ROUTER ----------
 # ---------- MAIN ROUTER ----------
 def main():
     # Which page are we on?
@@ -2862,9 +2861,8 @@ def main():
             view_advanced_stats(pillars, overall)
 
     # ---------- PLAY DEEP DIVE ----------
-    elif page == "play":
-        render_subpage_header("Play Deep Dive")
-        view_play_deep_dive()
+    elif page == "Play Deep Dive":
+        play_deep_dive()
 
     # ---------- FALLBACK ----------
     else:
