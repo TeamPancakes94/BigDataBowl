@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent.parent 
 OUT_DIR = ROOT / "outputs"
 CORE_CSV = OUT_DIR / "merged_core.csv"
 TRAITS_CSV = OUT_DIR / "per10_traits.csv"   # <-- new
