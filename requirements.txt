@@ -5,3 +5,9 @@ scikit-learn
 plotly
 streamlit
 sqlalchemy
+matplotlib.pyplot
+os
+sys
+seaborn
+pathlib
+glob
