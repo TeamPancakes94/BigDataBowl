@@ -1093,3 +1093,6 @@ def play_deep_dive():
             """,
             unsafe_allow_html=True,
         )
+
+def render_deep_dive():
+    play_deep_dive()
