@@ -2862,7 +2862,7 @@ def main():
 
     # ---------- PLAY DEEP DIVE ----------
     elif page == "play":
-        render_subpage_header("Play Deep Dive")  
+        render_subpage_header("Play Deep Dive")   # fixed
         play_deep_dive()
 
     # ---------- FALLBACK ----------
