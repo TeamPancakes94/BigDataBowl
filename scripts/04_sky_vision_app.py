@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import html
 
 import plotly.express as px
 import streamlit as st
@@ -434,6 +435,16 @@ hr.sky-section-divider {
     visibility: visible;
     opacity: 1;
 }
+
+/* allow tooltips to render outside their row/container */
+.pillar-help-row,
+.pillar-help-pill,
+[data-testid="stMarkdownContainer"] {
+  overflow: visible !important;
+}
+
+.pillar-help-pill { z-index: 9999; }
+
 
 /* ===== SKY VISION PIPELINE (styles used by sky_overview.py) ===== */
 .sky-pipeline-shell {
@@ -970,11 +981,12 @@ def render_pillar_tooltips_row():
         # One chip per pillar, with browser-native tooltip
         chip_html.append(
             f"""
-<span class="pillar-help-pill" title="{tooltip}">
-  <span class="pillar-help-label">{label}</span>
-  <span class="pillar-help-info">ⓘ</span>
-</span>
-"""
+        <span class="pillar-help-pill">
+        <span class="pillar-help-label">{label}</span>
+        <span class="pillar-help-info">ⓘ</span>
+        <span class="tooltip-bubble">{html.escape(tooltip)}</span>
+        </span>
+        """
         )
 
     if chip_html:
