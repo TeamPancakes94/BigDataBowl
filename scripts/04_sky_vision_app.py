@@ -436,15 +436,6 @@ hr.sky-section-divider {
     opacity: 1;
 }
 
-/* allow tooltips to render outside their row/container */
-.pillar-help-row,
-.pillar-help-pill,
-[data-testid="stMarkdownContainer"] {
-  overflow: visible !important;
-}
-
-.pillar-help-pill { z-index: 9999; }
-
 
 /* ===== SKY VISION PIPELINE (styles used by sky_overview.py) ===== */
 .sky-pipeline-shell {
@@ -957,12 +948,10 @@ PILLAR_TOOLTIPS = {
 
 
 def render_pillar_tooltips_row():
-    """
-    Row of 'ⓘ' chips explaining each pillar in football language.
-    Uses a simple title="" tooltip so every chip works reliably.
-    """
+    import html
+
     order = ["anticipation", "separation", "execution", "eyes", "innovation", "improv"]
-    chip_html = []
+    chips = []
 
     for code in order:
         tooltip = PILLAR_TOOLTIPS.get(code)
@@ -978,21 +967,19 @@ def render_pillar_tooltips_row():
             "improv": "Improv",
         }.get(code, code.title())
 
-        # One chip per pillar, with browser-native tooltip
-        chip_html.append(
-            f"""
-        <span class="pillar-help-pill">
-        <span class="pillar-help-label">{label}</span>
-        <span class="pillar-help-info">ⓘ</span>
-        <span class="tooltip-bubble">{html.escape(tooltip)}</span>
-        </span>
-        """
+        chips.append(f"""
+<span class="pillar-help-pill">
+  <span class="pillar-help-label">{html.escape(label)}</span>
+  <span class="pillar-help-info">ⓘ</span>
+  <span class="tooltip-bubble">{html.escape(tooltip)}</span>
+</span>
+""")
+
+    if chips:
+        st.markdown(
+            "<div class='pillar-help-row'>" + "".join(chips) + "</div>",
+            unsafe_allow_html=True,
         )
-
-    if chip_html:
-        row_html = "<div class='pillar-help-row'>" + "".join(chip_html) + "</div>"
-        st.markdown(row_html, unsafe_allow_html=True)
-
 
 
 # Outcome impact correlations (placeholder values – update if you have real correlations)
