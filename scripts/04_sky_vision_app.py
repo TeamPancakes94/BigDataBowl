@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import html
 
 import plotly.express as px
 import streamlit as st
@@ -434,6 +435,7 @@ hr.sky-section-divider {
     visibility: visible;
     opacity: 1;
 }
+
 
 /* ===== SKY VISION PIPELINE (styles used by sky_overview.py) ===== */
 .sky-pipeline-shell {
@@ -946,12 +948,10 @@ PILLAR_TOOLTIPS = {
 
 
 def render_pillar_tooltips_row():
-    """
-    Row of 'ⓘ' chips explaining each pillar in football language.
-    Uses a simple title="" tooltip so every chip works reliably.
-    """
+    import html
+
     order = ["anticipation", "separation", "execution", "eyes", "innovation", "improv"]
-    chip_html = []
+    chips = []
 
     for code in order:
         tooltip = PILLAR_TOOLTIPS.get(code)
@@ -967,20 +967,19 @@ def render_pillar_tooltips_row():
             "improv": "Improv",
         }.get(code, code.title())
 
-        # One chip per pillar, with browser-native tooltip
-        chip_html.append(
-            f"""
-<span class="pillar-help-pill" title="{tooltip}">
-  <span class="pillar-help-label">{label}</span>
+        chips.append(f"""
+<span class="pillar-help-pill">
+  <span class="pillar-help-label">{html.escape(label)}</span>
   <span class="pillar-help-info">ⓘ</span>
+  <span class="tooltip-bubble">{html.escape(tooltip)}</span>
 </span>
-"""
+""")
+
+    if chips:
+        st.markdown(
+            "<div class='pillar-help-row'>" + "".join(chips) + "</div>",
+            unsafe_allow_html=True,
         )
-
-    if chip_html:
-        row_html = "<div class='pillar-help-row'>" + "".join(chip_html) + "</div>"
-        st.markdown(row_html, unsafe_allow_html=True)
-
 
 
 # Outcome impact correlations (placeholder values – update if you have real correlations)
@@ -2861,7 +2860,8 @@ def main():
             view_advanced_stats(pillars, overall)
 
     # ---------- PLAY DEEP DIVE ----------
-    elif page == "Play Deep Dive":
+    elif page == "play":
+        render_subpage_header("Play Deep Dive")   # fixed tab
         play_deep_dive()
 
     # ---------- FALLBACK ----------

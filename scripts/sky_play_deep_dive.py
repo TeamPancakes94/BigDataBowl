@@ -1,15 +1,15 @@
 # scripts/sky_play_deep_dive.py
 # Real-play PER-10 Deep Dive, using merged_core.csv + per10_traits.csv
+# holder
 
 from __future__ import annotations
-
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent.parent 
 OUT_DIR = ROOT / "outputs"
 CORE_CSV = OUT_DIR / "merged_core.csv"
 TRAITS_CSV = OUT_DIR / "per10_traits.csv"   # <-- new
@@ -1093,3 +1093,6 @@ def play_deep_dive():
             """,
             unsafe_allow_html=True,
         )
+
+def render_deep_dive():
+    play_deep_dive()
