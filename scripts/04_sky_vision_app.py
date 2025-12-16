@@ -2861,7 +2861,8 @@ def main():
             view_advanced_stats(pillars, overall)
 
     # ---------- PLAY DEEP DIVE ----------
-    elif page == "Play Deep Dive":
+    elif page == "play":
+        render_subpage_header("Play Deep Dive")  
         play_deep_dive()
 
     # ---------- FALLBACK ----------
