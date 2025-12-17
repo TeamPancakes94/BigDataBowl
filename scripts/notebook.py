@@ -34,54 +34,73 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import beta as beta_dist
 
+import warnings
+
+# Hide pandas FutureWarnings (including the downcasting one from replace)
+warnings.filterwarnings(
+    "ignore",
+    message=".*Downcasting behavior in `replace` is deprecated.*"
+)
+# Hide FutureWarnings from pandas groupby (upcoming changes)
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+    message=".*DataFrameGroupBy.*"
+)
+# Hide DeprecationWarnings about groupby.apply including grouping columns
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    message=".*DataFrameGroupBy.apply operated on the grouping columns.*"
+)
+
+
 # Reproducibility
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
 
-def find_train_dir():
+def _has_input_output_csv(folder: Path) -> bool:
+    """Return True if this folder has both input_* and output_* CSVs."""
+    has_input = list(folder.glob("input_2023_w*.csv")) or list(folder.glob("input_*.csv"))
+    has_output = list(folder.glob("output_2023_w*.csv")) or list(folder.glob("output_*.csv"))
+    return bool(has_input and has_output)
+
+
+def find_train_dir() -> Path:
     """
-    Find the `train/` directory that holds input_*.csv and output_*.csv.
+    Find the directory that holds input_*.csv and output_*.csv.
 
     Priority:
-      1. Kaggle: /kaggle/input/*/train
-      2. Local: walk up from the current working directory and look for 'train/'
+      1. Kaggle: search all subfolders under /kaggle/input for a 'train/' with the files
+      2. Local: walk up from cwd and look for 'train/'
     """
 
-    # ---------- 1) Kaggle environment ----------
+    # ---------- 1) Kaggle: search /kaggle/input recursively ----------
     kaggle_root = Path("/kaggle/input")
     if kaggle_root.exists():
-        candidates = []
         for ds in kaggle_root.iterdir():
             if not ds.is_dir():
                 continue
-            t = ds / "train"
-            if t.is_dir():
-                has_input = list(t.glob("input_2023_w*.csv")) or list(t.glob("input_*.csv"))
-                has_output = list(t.glob("output_2023_w*.csv")) or list(t.glob("output_*.csv"))
-                if has_input and has_output:
-                    candidates.append(t)
 
-        if candidates:
-            print("Using TRAIN directory from Kaggle input:", candidates[0])
-            return candidates[0]
+            # Look for any directory named 'train' inside this dataset
+            for train_dir in ds.rglob("train"):
+                if train_dir.is_dir() and _has_input_output_csv(train_dir):
+                    print("Using TRAIN directory from Kaggle dataset:", train_dir)
+                    return train_dir
 
-    # ---------- 2) Local environment (VS Code, etc.) ----------
-    # Start from current working directory and walk up the parents
+    # ---------- 2) Local: walk upwards to find 'train/' ----------
     start = Path.cwd().resolve()
     for parent in [start] + list(start.parents):
         train_dir = parent / "train"
-        if train_dir.is_dir():
-            has_input = list(train_dir.glob("input_2023_w*.csv")) or list(train_dir.glob("input_*.csv"))
-            has_output = list(train_dir.glob("output_2023_w*.csv")) or list(train_dir.glob("output_*.csv"))
-            if has_input and has_output:
-                print("Using TRAIN directory from local filesystem:", train_dir)
-                return train_dir
+        if train_dir.is_dir() and _has_input_output_csv(train_dir):
+            print("Using TRAIN directory from local filesystem:", train_dir)
+            return train_dir
 
-    # If nothing found, give a clear error
     raise FileNotFoundError(
-        "Could not find a 'train' directory with input_*.csv and output_*.csv.\n"
-        "- On Kaggle: make sure you attached the dataset that contains train/.\n"
+        "Could not find input_*.csv and output_*.csv.\n"
+        "- On Kaggle: competition data should be under /kaggle/input/...; this function "
+        "searches all subfolders for a 'train/' directory.\n"
         "- Locally: make sure there's a 'train' folder somewhere above this notebook."
     )
 
@@ -117,7 +136,8 @@ if len(all_csvs) > 20:
 def find_and_load_single_csv(name: str):
     """
     Try to locate a CSV by filename anywhere under /kaggle/input.
-    This is purely for exploratory display and not required for the main pipeline.
+    This walks all subdirectories (needed because the competition files
+    live under .../114239_nfl_competition_files_published_analytics_final/).
     """
     root = Path("/kaggle/input")
     if not root.exists():
@@ -126,13 +146,14 @@ def find_and_load_single_csv(name: str):
     for ds in root.iterdir():
         if not ds.is_dir():
             continue
-        candidate = ds / name
-        if candidate.exists():
-            print(f"Loading {name} from {candidate}")
-            return pd.read_csv(candidate, low_memory=False)
+        # search recursively inside this dataset
+        for candidate in ds.rglob(name):
+            if candidate.is_file():
+                print(f"Loading {name} from {candidate}")
+                return pd.read_csv(candidate, low_memory=False)
+
     print(f"{name} not found in /kaggle/input (skipping)")
     return None
-
 
 players = find_and_load_single_csv("players.csv")
 plays   = find_and_load_single_csv("plays.csv")
@@ -145,18 +166,6 @@ if plays is not None:
 if games is not None:
     display(games.head())
 
-
-# %%
-# %%
-# Simple passResult distribution if available
-if plays is not None and "passResult" in plays.columns:
-    print(plays["passResult"].value_counts(dropna=False))
-
-    plays["passResult"].value_counts().plot(kind="bar")
-    plt.title("Distribution of passResult")
-    plt.xlabel("Result")
-    plt.ylabel("Count")
-    plt.show()
 
 # %% [markdown]
 # # %% [markdown]
@@ -900,15 +909,22 @@ def build_per10_and_pillars(limit_files: int | None = None):
     )
 
     # Show a sample ball-in-air window for one of the sampled plays
-    sample_key = unique_plays.iloc[0].to_dict()
-    sample_window = (
-        window_df.query(
-            "game_id == @sample_key['game_id'] and play_id == @sample_key['play_id']"
+    if unique_plays.empty:
+        print("No plays found in ball-in-air window; skipping sample display.")
+    else:
+        sample_row = unique_plays.iloc[0]
+        g_id = sample_row["game_id"]
+        p_id = sample_row["play_id"]
+
+        sample_window = (
+            window_df[(window_df["game_id"] == g_id) & (window_df["play_id"] == p_id)]
+            .sort_values("frame_id")
         )
-        .sort_values("frame_id")
-    )
-    print("Sample ball-in-air window for game_id/play_id:", sample_key)
-    display(sample_window[["game_id", "play_id", "nfl_id", "frame_id", "x", "y"]].head(20))
+
+        print("Sample ball-in-air window for game_id/play_id:",
+              {"game_id": int(g_id), "play_id": int(p_id)})
+        display(sample_window[["game_id", "play_id", "nfl_id", "frame_id", "x", "y"]].head(20))
+
 
     # 3) Compute PER-10 pillars (ball-in-air only)
     A_df      = compute_all_anticipation(window_df)
