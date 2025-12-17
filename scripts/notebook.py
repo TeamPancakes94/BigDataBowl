@@ -155,17 +155,6 @@ def find_and_load_single_csv(name: str):
     print(f"{name} not found in /kaggle/input (skipping)")
     return None
 
-players = find_and_load_single_csv("players.csv")
-plays   = find_and_load_single_csv("plays.csv")
-games   = find_and_load_single_csv("games.csv")
-
-if players is not None:
-    display(players.head())
-if plays is not None:
-    display(plays.head())
-if games is not None:
-    display(games.head())
-
 
 # %% [markdown]
 # # %% [markdown]
@@ -1367,6 +1356,63 @@ if "overall_0_100" in overall_post_df.columns:
     plt.xlabel("Score")
     plt.ylabel("Players")
     plt.show()
+
+# %% [markdown]
+# # %% [markdown]
+# # 6.2 Bayesian shrinkage (raw success rate vs posterior mean)
+# # We expect: - Small sample players (low n) to shrink toward the prior more strongly - Large sample players to have posterior mean ~ raw success rate
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 1) Recompute raw success rates per player × side × pillar (same grouping used in build_posteriors)
+tmp = feat_df.copy()
+
+# Ensure pillar naming matches what build_posteriors expects
+tmp["pillar"] = tmp["pillar"].astype(str)
+
+# Recreate success flag (uses your existing pillar_success)
+tmp["success"] = tmp.apply(lambda r: pillar_success(r["side"], r["pillar"], r["raw_value"]), axis=1)
+
+g_raw = (
+    tmp.groupby(["player_id", "side", "pillar"])["success"]
+    .agg(["sum", "count"])
+    .reset_index()
+)
+g_raw["raw_rate"] = g_raw["sum"] / g_raw["count"]
+
+# 2) Join to posterior means already computed
+val = g_raw.merge(
+    pillars_post_df[["player_id", "side", "pillar", "mean"]],
+    on=["player_id", "side", "pillar"],
+    how="inner",
+)
+
+# 3) Plot: raw success rate vs posterior mean, with point size = sample count
+plt.figure(figsize=(8, 6))
+sizes = 20 + 180 * (val["count"] / val["count"].max())  # scale sizes nicely
+
+plt.scatter(val["raw_rate"], val["mean"], s=sizes, alpha=0.5)
+plt.plot([0, 1], [0, 1], linestyle="--")  # identity line
+
+plt.title("Validation: Bayesian shrinkage (raw success rate vs posterior mean)")
+plt.xlabel("Raw success rate (sum / count)")
+plt.ylabel("Posterior mean (Beta-Binomial)")
+
+# Optional: annotate a few smallest-sample points to make the effect obvious
+small = val.nsmallest(8, "count")
+for _, r in small.iterrows():
+    plt.annotate(f"n={int(r['count'])}", (r["raw_rate"], r["mean"]), fontsize=8)
+
+plt.grid(True, alpha=0.2)
+plt.show()
+
+# 4) Quick numeric sanity checks
+print("Correlation(raw_rate, posterior_mean):", round(val["raw_rate"].corr(val["mean"]), 4))
+print("Median |raw_rate - posterior_mean|:", round(np.median(np.abs(val["raw_rate"] - val["mean"])), 4))
+print("Top 5 smallest n rows:")
+display(val.sort_values("count").head(5))
 
 # %% [markdown]
 # # %% [markdown]
