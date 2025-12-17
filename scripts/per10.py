@@ -3,9 +3,8 @@
 import numpy as np
 import pandas as pd
 
-# =============================================================================
-# PER-10 (5-pillars) and PER-10 360 (6-pillars)
-# =============================================================================
+
+# PER-10 (5-pillars) and PER-10 360 (6-pillars) ---------------------------
 
 def compute_per10_basic(A, S, E, Eyes, Innovation):
     """
@@ -78,9 +77,8 @@ def compute_all_per10_360(A_df, S_df, E_df, Eyes_df, Innovation_df, Improv_df):
 
     return df
 
-# =============================================================================
-# Anticipation (A)
-# =============================================================================
+
+# Anticipation (A) -------------------------------------------------------
 
 def score_A(anticipation_frames):
     if anticipation_frames <= 1: return 10
@@ -131,9 +129,8 @@ def compute_all_anticipation(df_input: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(results, columns=["game_id", "play_id", "nfl_id", "A"])
 
-# =============================================================================
-# Separation (S)
-# =============================================================================
+
+# Separation (S) --------------------------------------------------------
 
 def score_separation(delta_sep, role):
     """
@@ -205,9 +202,7 @@ def compute_all_separation(df: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(results, columns=["game_id", "play_id", "nfl_id", "S"])
 
-# =============================================================================
-# Execution (E)
-# =============================================================================
+# Execution (E) -------------------------------------------------------------
 
 def angle_diff(a, b):
     d = abs(a - b) % 360
@@ -271,9 +266,7 @@ def compute_all_execution(df_input: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(results, columns=["game_id", "play_id", "nfl_id", "E"])
 
-# =============================================================================
-# Eyes (tracking / vision)
-# =============================================================================
+# Eyes (tracking / vision) ----------------------------------------------------
 
 def compute_eyes_score(play_df: pd.DataFrame, landing_point, player_id) -> float:
     """
@@ -341,9 +334,8 @@ def compute_all_eyes(df: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(results)
 
-# =============================================================================
-# Innovation
-# =============================================================================
+
+# Innovation ----------------------------------------------------------------
 
 def score_Innovation(innovation_metric):
     if innovation_metric >= 1.5: return 10
@@ -423,9 +415,8 @@ def compute_all_innovation(df: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(results)
 
-# =============================================================================
-# Improv Index (I)
-# =============================================================================
+
+# Improv Index (I) -----------------------------------------------------
 
 def compute_improv_score(play_df: pd.DataFrame, player_id, role: str) -> float:
     df = play_df[play_df["nfl_id"] == player_id].copy()
