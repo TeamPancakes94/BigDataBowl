@@ -6,12 +6,12 @@
 # #
 # # What happens here:
 # #
-# # - We locate the preprocessed tracking data (`input_2023_w*.csv` / `output_2023_w*.csv`)
+# # We locate the preprocessed tracking data (`input_2023_w*.csv` / `output_2023_w*.csv`)
 # #   without hard-coding a Kaggle dataset name.
-# # - We build a **merged core roster** (player–play identities).
-# # - We define a robust **ball-in-air window** using ball-tracking rows when available,
+# # We build a **merged core roster** (player–play identities).
+# # We define a robust **ball-in-air window** using ball-tracking rows when available,
 # #   with safe fallbacks when things are missing.
-# # - We compute **PER-10 pillars** (Anticipation, Separation, Execution, Eyes,
+# # We compute **PER-10 pillars** (Anticipation, Separation, Execution, Eyes,
 # #   Innovation, Improv) from those ball-in-air frames.
 # # - We derive WR/DB pillar features (anticipation ms, reaction ms, separation, coverage, eyes)
 # #   and then run a **beta–binomial model** to get posterior distributions and
