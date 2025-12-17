@@ -32,7 +32,6 @@ from glob import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from scipy.stats import beta as beta_dist
 
 # Reproducibility
@@ -42,17 +41,17 @@ np.random.seed(RANDOM_SEED)
 
 def find_train_dir():
     """
-    Try to find the `train/` directory that contains input_*.csv and output_*.csv
-    without requiring the user to hard-code a Kaggle dataset name.
+    Find the `train/` directory that holds input_*.csv and output_*.csv.
 
     Priority:
-      1. /kaggle/input/*/train (Kaggle datasets)
-      2. ./train relative to the notebook (local runs)
+      1. Kaggle: /kaggle/input/*/train
+      2. Local: walk up from the current working directory and look for 'train/'
     """
-    kaggle_root = Path("/kaggle/input")
-    candidates = []
 
+    # ---------- 1) Kaggle environment ----------
+    kaggle_root = Path("/kaggle/input")
     if kaggle_root.exists():
+        candidates = []
         for ds in kaggle_root.iterdir():
             if not ds.is_dir():
                 continue
@@ -63,18 +62,27 @@ def find_train_dir():
                 if has_input and has_output:
                     candidates.append(t)
 
-    if candidates:
-        print("Using TRAIN directory from Kaggle input:", candidates[0])
-        return candidates[0]
+        if candidates:
+            print("Using TRAIN directory from Kaggle input:", candidates[0])
+            return candidates[0]
 
-    local = Path("train")
-    if local.is_dir():
-        print("Using TRAIN directory from local folder:", local.resolve())
-        return local
+    # ---------- 2) Local environment (VS Code, etc.) ----------
+    # Start from current working directory and walk up the parents
+    start = Path.cwd().resolve()
+    for parent in [start] + list(start.parents):
+        train_dir = parent / "train"
+        if train_dir.is_dir():
+            has_input = list(train_dir.glob("input_2023_w*.csv")) or list(train_dir.glob("input_*.csv"))
+            has_output = list(train_dir.glob("output_2023_w*.csv")) or list(train_dir.glob("output_*.csv"))
+            if has_input and has_output:
+                print("Using TRAIN directory from local filesystem:", train_dir)
+                return train_dir
 
+    # If nothing found, give a clear error
     raise FileNotFoundError(
-        "Could not find a 'train' directory with input_*.csv and output_*.csv "
-        "under /kaggle/input/* or ./train"
+        "Could not find a 'train' directory with input_*.csv and output_*.csv.\n"
+        "- On Kaggle: make sure you attached the dataset that contains train/.\n"
+        "- Locally: make sure there's a 'train' folder somewhere above this notebook."
     )
 
 
