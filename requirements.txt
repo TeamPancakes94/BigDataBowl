@@ -5,9 +5,13 @@ scikit-learn
 plotly
 streamlit
 sqlalchemy
-glob
-pathlib
 seaborn
 matplotlib
-os
-sys
+
+# The following are Python standard-library modules.
+# They should NOT be installed with pip, but we keep them here as notes
+# because the code depends on them.
+# glob
+# pathlib
+# os
+# sys
