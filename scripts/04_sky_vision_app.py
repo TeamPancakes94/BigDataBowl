@@ -1760,7 +1760,6 @@ Ball IQ ratings across all player-sides, but the pillars remain most diagnostic 
             val_df,
             x="per10",
             y="outcome_proxy",
-            trendline="ols",
             labels={
                 "per10": "PER-10 360",
                 "outcome_proxy": "Outcome impact (proxy EPA-per-play)",
