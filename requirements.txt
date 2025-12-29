@@ -7,6 +7,8 @@ streamlit
 sqlalchemy
 seaborn
 matplotlib
+statsmodels
+
 
 # The following are Python standard-library modules.
 # They should NOT be installed with pip, but we keep them here as notes
